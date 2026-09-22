@@ -79,13 +79,13 @@ class NLPService:
 
     # Chinese entity patterns
     ENTITY_PATTERNS = [
-        ("url", re.compile(r'https?://[^\s]+', re.IGNORECASE)),
-        ("email", re.compile(r'[\w.+-]+@[\w-]+\.[\w.-]+')),
-        ("phone", re.compile(r'1[3-9]\d{9}')),
-        ("date", re.compile(r'\d{4}[-/年]\d{1,2}[-/月]\d{1,2}[日号]?')),
-        ("money", re.compile(r'(\$|¥|€|£)\d+([,.]\d+)?|(\d+([,.]\d+)?)\s*(元|美元|欧元|英镑|港币|日元)')),
-        ("company", re.compile(r'(北京|上海|深圳|广州|杭州|成都|武汉|南京|天津|重庆)([^\s]{2,20})?(公司|集团|有限|科技|实业|股份)')),
-        ("person_title", re.compile(r'(\w{2,4})(先生|女士|教授|博士|工程师|经理|总监|总裁)')),
+        ("网址", re.compile(r'https?://[^\s]+', re.IGNORECASE)),
+        ("邮箱", re.compile(r'[\w.+-]+@[\w-]+\.[\w.-]+')),
+        ("电话", re.compile(r'1[3-9]\d{9}')),
+        ("日期", re.compile(r'\d{4}[-/年]\d{1,2}[-/月]\d{1,2}[日号]?')),
+        ("金额", re.compile(r'(\$|¥|€|£)\d+([,.]\d+)?|(\d+([,.]\d+)?)\s*(元|美元|欧元|英镑|港币|日元)')),
+        ("公司", re.compile(r'(北京|上海|深圳|广州|杭州|成都|武汉|南京|天津|重庆)([^\s]{2,20})?(公司|集团|有限|科技|实业|股份)')),
+        ("职务称谓", re.compile(r'(\w{2,4})(先生|女士|教授|博士|工程师|经理|总监|总裁)')),
     ]
 
     def __init__(self, language: str = "chinese"):
@@ -105,19 +105,19 @@ class NLPService:
         score = (pos_count - neg_count) / total
 
         # Also calculate text-level intensity
-        intensity = "low"
+        intensity = "低"
         abs_score = abs(score)
         if abs_score > 0.6:
-            intensity = "high"
+            intensity = "高"
         elif abs_score > 0.2:
-            intensity = "medium"
+            intensity = "中"
 
         if score > 0.15:
-            label = "positive"
+            label = "正面"
         elif score < -0.15:
-            label = "negative"
+            label = "负面"
         else:
-            label = "neutral"
+            label = "中性"
 
         # Highlight positive/negative tokens found
         pos_found = [t for t in tokens if t in self.POSITIVE_WORDS][:10]
@@ -149,7 +149,7 @@ class NLPService:
 
         # Frequency-based keywords with normalized score
         max_f = max(freq.values()) if freq else 1
-        keywords_freq = [{"word": w, "count": c, "score": round(c / max_f, 4), "method": "frequency"}
+        keywords_freq = [{"word": w, "count": c, "score": round(c / max_f, 4), "method": "词频"}
                          for w, c in freq.most_common(top_k)]
 
         # TF-IDF keywords for multi-sentence text
@@ -307,7 +307,7 @@ class NLPService:
         # Also extract hashtag-like patterns (common in Chinese social media)
         hashtags = re.findall(r'#([^#\s]+)', text)
         if hashtags:
-            entities["hashtag"] = list(set(hashtags))
+            entities["话题"] = list(set(hashtags))
 
         total_found = sum(len(v) for v in entities.values())
 
