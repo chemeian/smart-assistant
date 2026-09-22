@@ -1,0 +1,617 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>多功能智能助手</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f5f6fa;color:#2d3436;min-height:100vh}
+nav{background:#2d3436;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+nav h1{font-size:17px;font-weight:600}
+nav .status{margin-left:auto;font-size:12px;padding:3px 10px;border-radius:10px;background:#636e72}
+nav .status.online{background:#00b894}
+.container{max-width:1200px;margin:0 auto;padding:16px 12px}
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button{flex:1;min-width:90px;padding:9px 14px;border:none;background:#dfe6e9;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;color:#636e72}
+.tabs button:hover{background:#b2bec3}
+.tabs button.active{background:#fff;color:#2d3436;box-shadow:0 -1px 3px rgba(0,0,0,.06)}
+.panel{display:none;background:#fff;border-radius:0 8px 8px;padding:20px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+.panel.active{display:block}
+h2{font-size:15px;margin-bottom:14px;color:#636e72;border-bottom:1px solid #eee;padding-bottom:8px}
+label{display:block;font-size:12px;color:#636e72;margin-bottom:3px;margin-top:10px}
+textarea,input[type=text],select{width:100%;padding:9px 11px;border:1px solid #dfe6e9;border-radius:6px;font-size:13px;font-family:inherit;outline:0;transition:.15s}
+textarea:focus,input:focus,select:focus{border-color:#0984e3;box-shadow:0 0 0 2px rgba(9,132,227,.12)}
+textarea{resize:vertical;min-height:80px}
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{opacity:.88}
+.btn.primary{background:#0984e3;color:#fff}
+.btn.success{background:#00b894;color:#fff}
+.btn.danger{background:#d63031;color:#fff}
+.btn.ghost{background:transparent;border:1px solid #dfe6e9;color:#636e72}
+.btn.ghost:hover{background:#f5f6fa}
+.btn.small{padding:5px 12px;font-size:11px}
+.btn.icon{padding:8px 10px;min-width:auto}
+.btn:disabled{opacity:.5;cursor:default}
+.mt-12{margin-top:12px}.mb-12{margin-bottom:12px}
+.flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.result-box{background:#f8f9fa;border:1px solid #dfe6e9;border-radius:6px;padding:14px;margin-top:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:420px;overflow:auto}
+.result-box.success{border-left:3px solid #00b894}
+.result-box.error{border-left:3px solid #d63031}
+
+/* Chat layout with sidebar */
+.chat-layout{display:flex;gap:12px;height:580px}
+.conv-sidebar{width:220px;min-width:180px;background:#f8f9fa;border-radius:8px;display:flex;flex-direction:column;overflow:hidden}
+.conv-sidebar-header{padding:10px 12px;border-bottom:1px solid #eee;font-size:13px;font-weight:600;color:#2d3436;display:flex;justify-content:space-between;align-items:center}
+.conv-sidebar-header .btn{padding:4px 8px;font-size:11px}
+.conv-list{flex:1;overflow-y:auto;padding:4px}
+.conv-item{padding:9px 10px;border-radius:6px;cursor:pointer;font-size:12px;line-height:1.4;margin-bottom:3px;transition:.1s;position:relative;display:flex;align-items:center;gap:6px}
+.conv-item:hover{background:#e8eaed}
+.conv-item.active{background:#d2e3fc}
+.conv-item .conv-text{flex:1;overflow:hidden}
+.conv-item .conv-title{font-weight:500;color:#2d3436;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-item .conv-time{font-size:10px;color:#999;margin-top:1px}
+.conv-item .conv-del{display:none;cursor:pointer;color:#d63031;font-size:14px;line-height:1;padding:2px 4px;border-radius:3px}
+.conv-item:hover .conv-del{display:block}
+.conv-item .conv-del:hover{background:#fce4ec}
+.conv-empty{text-align:center;padding:20px 10px;color:#999;font-size:12px}
+
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-box{background:#f8f9fa;border-radius:8px;padding:14px;flex:1;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:9px 13px;border-radius:10px;font-size:13px;line-height:1.5}
+.msg.user{background:#0984e3;color:#fff;align-self:flex-end;border-radius:10px 10px 0 10px}
+.msg.assistant{background:#dfe6e9;color:#2d3436;align-self:flex-start;border-radius:10px 10px 10px 0}
+.msg .meta{font-size:10px;opacity:.65;margin-top:3px}
+.msg img.attach-preview{max-width:180px;max-height:140px;border-radius:6px;margin:4px 0;display:block}
+.chat-input-area{display:flex;gap:6px;flex-wrap:wrap}
+.chat-input-area input{flex:1;min-width:180px}
+.chat-toolbar{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.chat-toolbar select{padding:5px 8px;font-size:12px;width:auto;flex:none}
+.chat-mode-toggle{display:flex;gap:0;border-radius:5px;overflow:hidden;border:1px solid #dfe6e9;font-size:11px}
+.chat-mode-toggle span{padding:4px 10px;cursor:pointer;background:#fff;color:#636e72;transition:.15s}
+.chat-mode-toggle span.active{background:#0984e3;color:#fff}
+
+.badge{font-size:10px;padding:2px 7px;border-radius:8px;background:#dfe6e9;color:#636e72}
+.badge.positive{background:#e8f5e9;color:#2e7d32}
+.badge.negative{background:#fce4ec;color:#c62828}
+.badge.neutral{background:#e3f2fd;color:#1565c0}
+.attachment-preview{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#e3f2fd;border-radius:4px;font-size:11px;margin:2px}
+.attachment-preview img{max-height:40px;border-radius:3px}
+.keyword-cloud{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.keyword-tag{padding:4px 10px;border-radius:12px;font-size:12px;background:#e3f2fd;color:#1565c0}
+.keyword-tag.hot{background:#e8f5e9;color:#2e7d32;font-weight:600}
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:700px){.analysis-grid{grid-template-columns:1fr}.chat-layout{flex-direction:column;height:auto}.conv-sidebar{width:100%;height:160px}}
+.analysis-card{border:1px solid #eee;border-radius:6px;padding:12px;font-size:12px}
+.analysis-card h3{font-size:13px;margin-bottom:6px;color:#2d3436}
+pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflow:auto;max-height:200px}
+.upload-zone{border:2px dashed #dfe6e9;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:.15s;color:#636e72;font-size:13px;margin-top:8px}
+.upload-zone:hover,.upload-zone.dragover{border-color:#0984e3;background:#f5f9ff;color:#0984e3}
+ .upload-zone input{display:none}
+ .hidden{display:none}
+
+@media(max-width:650px){
+  .chat-layout{flex-direction:column;height:auto}
+  .conv-sidebar{width:100%;max-height:150px}
+  .chat-box{height:300px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>多功能智能助手</h1>
+  <span class="status online" id="statusBadge">运行中</span>
+</nav>
+
+<div class="container">
+<div class="tabs">
+  <button class="active" onclick="switchTab('chat')">智能对话</button>
+  <button onclick="switchTab('nlp')">文本分析</button>
+  </div>
+
+<!-- Chat Panel -->
+<div class="panel active" id="panel-chat">
+  <div class="providers-info" id="providerInfo">加载中...</div>
+  <div class="chat-layout">
+    <!-- Conversation sidebar -->
+    <div class="conv-sidebar" id="convSidebar">
+      <div class="conv-sidebar-header">
+        <span>对话记录</span>
+        <button class="btn primary" onclick="newConversation()" style="font-size:11px;padding:4px 10px">+ 新建</button>
+      </div>
+      <div class="conv-list" id="convList"></div>
+    </div>
+    <!-- Chat main area -->
+    <div class="chat-main" style="position:relative">
+      <div class="chat-box" id="chatBox">
+        <div class="msg assistant"><div class="meta">系统提示</div>你好！我是多功能智能助手，支持多轮对话、图片分析、文件处理等功能。在左侧可管理对话记录，点击「+ 新建」开始新对话。</div>
+      </div>
+
+      <div class="chat-toolbar">
+        <select id="providerSelect">
+          <option value="deepseek">DeepSeek</option>
+          <option value="qwen">通义千问</option>
+        </select>
+        <div class="chat-mode-toggle" id="modeToggle">
+          <span class="active" onclick="setMode('multi')" title="保留对话上下文">多轮对话</span>
+          <span onclick="setMode('single')" title="每次独立提问">单轮对话</span>
+        </div>
+        <button class="btn ghost small" onclick="clearCurrentChat()" title="清空当前对话">清空</button>
+      </div>
+
+      <div id="attachmentsArea"></div>
+      
+      <div id="analysisActionArea" style="display:none;margin-bottom:8px">
+        <button class="btn primary small" onclick="analyzeWithLLM()">📊 分析数据</button>
+      </div>
+      
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="输入消息...（回车发送）" onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendChat()">
+        <button class="btn icon ghost" title="上传图片或文件" onclick="document.getElementById('chatFile').click()">&#128206;</button>
+        <input type="file" id="chatFile" class="hidden" accept="image/*,.txt,.csv,.json,.md,.xml,.html,.py,.js,.css" onchange="handleChatFile(event)" multiple>
+        <button class="btn primary" onclick="sendChat()" id="sendBtn">发送</button>
+      </div>
+      <div class="upload-zone" id="uploadZone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onDrop(event)">
+        拖拽图片或文本文件到此处，或点击上传
+      </div>
+      <div id="chatError" class="result-box error" style="display:none;margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NLP Panel -->
+<div class="panel" id="panel-nlp">
+  <div class="flex-between mb-12">
+    <h2 style="border:none;padding:0;margin:0">文本输入</h2>
+    <span class="badge" id="nlpCharCount">0 字符</span>
+  </div>
+  <textarea id="nlpText" rows="5" placeholder="在此粘贴或输入文本进行综合分析..." oninput="updateNLPCharCount()">今天天气真好，心情非常愉快！这个新产品也很好用，我非常喜欢。让我们来分析这段文本吧。</textarea>
+  <div class="flex mt-12" style="flex-wrap:wrap">
+    <button class="btn primary small" onclick="fullAnalyze()">综合分析</button>
+    <button class="btn primary small" onclick="analyzeSentiment()">情感分析</button>
+    <button class="btn primary small" onclick="extractKeywords()">关键词提取</button>
+    <button class="btn primary small" onclick="generateSummary()">文本摘要</button>
+    <button class="btn primary small" onclick="classifyText()">文本分类</button>
+    <button class="btn primary small" onclick="extractEntities()">实体识别</button>
+    <button class="btn primary small" onclick="readabilityCheck()">可读性分析</button>
+    <button class="btn primary small" onclick="countWords()">字数统计</button>
+  </div>
+  <div id="nlpResult" style="margin-top:12px"></div>
+</div>
+
+
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+let sessionId = 'sess_' + Math.random().toString(36).slice(2,10);
+let chatMode = 'multi';
+let pendingAttachments = [];
+let imageUri = '';
+let allSessions = [];
+
+// Load provider status
+fetch(API_BASE + '/api/chat/providers')
+  .then(r=>r.json()).then(d=>{
+    const p=d.data.providers;
+    let html='';
+    for(const [k,v] of Object.entries(p)){
+      const status=v.configured?'已配置':'未配置';
+      const icon=v.configured?'&#9989;':'&#10060;';
+      const vis=v.supports_vision?' (支持视觉)':'';
+      html+=`<span style="margin-right:10px">${icon} <b>${k==='deepseek'?'DeepSeek':'通义千问'}</b>${vis}: ${status}</span>`;
+    }
+    document.getElementById('providerInfo').innerHTML=html;
+  }).catch(()=>{
+    document.getElementById('providerInfo').textContent='连接失败';
+    document.getElementById('statusBadge').className='status';
+    document.getElementById('statusBadge').textContent='离线';
+  });
+
+// Load sessions on start
+loadSessions();
+
+function loadSessions(){
+  fetch(API_BASE + '/api/chat/sessions')
+    .then(r=>r.json()).then(d=>{
+      if(d.success){ allSessions = d.data.sessions || []; renderConvList(); }
+    }).catch(()=>{});
+}
+
+function renderConvList(){
+  const list = document.getElementById('convList');
+  if(!allSessions.length){
+    list.innerHTML = '<div class="conv-empty">暂无对话记录<br>点击「+ 新建」开始对话</div>';
+    return;
+  }
+  let html = '';
+  allSessions.forEach(s=>{
+    const active = s.session_id === sessionId ? ' active' : '';
+    const time = formatTime(s.updated_at);
+    html += `<div class="conv-item${active}" onclick="switchConversation('${s.session_id}')">
+      <span class="conv-text"><div class="conv-title">${escHtml(s.title)}</div><div class="conv-time">${time}  ${s.message_count}条</div></span>
+      <span class="conv-del" onclick="event.stopPropagation();deleteConversation('${s.session_id}')">&times;</span>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+
+function formatTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if(diff < 60000) return '刚刚';
+  if(diff < 3600000) return Math.floor(diff/60000)+'分钟前';
+  if(diff < 86400000) return Math.floor(diff/3600000)+'小时前';
+  return d.getMonth()+1+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function newConversation(){
+  sessionId = 'sess_' + Math.random().toString(36).slice(2,10);
+  document.getElementById('chatBox').innerHTML = '<div class="msg assistant"><div class="meta">系统提示</div>新对话已开始。请输入你的问题。</div>';
+  imageUri='';pendingAttachments=[];
+  updateAttachmentsUI();
+  renderConvList();
+}
+
+function switchConversation(id){
+  sessionId = id;
+  // Load history
+  fetch(API_BASE + '/api/chat/history?session_id=' + id)
+    .then(r=>r.json()).then(d=>{
+      const box=document.getElementById('chatBox');
+      box.innerHTML='';
+      if(d.success && d.data.messages.length){
+        d.data.messages.forEach(m=>{
+          const role=m.role==='user'?'user':'assistant';
+          const meta=m.role==='user'?'你':('助手 &middot; 历史');
+          addChatMessage(role,m.content,meta);
+        });
+      } else {
+        box.innerHTML='<div class="msg assistant"><div class="meta">系统提示</div>该对话暂无内容。</div>';
+      }
+      imageUri='';pendingAttachments=[];updateAttachmentsUI();
+      renderConvList();
+    }).catch(()=>{renderConvList();});
+}
+
+function deleteConversation(id){
+  if(!confirm('确定要删除这条对话记录吗？')) return;
+  fetch(API_BASE + '/api/chat/sessions/' + id, {method:'DELETE'})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){
+        allSessions = allSessions.filter(s=>s.session_id!==id);
+        if(sessionId===id){ newConversation(); }
+        else { renderConvList(); }
+      }
+    }).catch(()=>{});
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tabs button[onclick*="${name}"]`).classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+function setMode(mode){
+  chatMode = mode;
+  document.querySelectorAll('#modeToggle span').forEach(s=>s.classList.remove('active'));
+  if(mode==='multi') document.querySelector('#modeToggle span:first-child').classList.add('active');
+  else document.querySelector('#modeToggle span:last-child').classList.add('active');
+}
+
+// --- Chat ---
+function addChatMessage(role, content, meta, imgSrc){
+  const box=document.getElementById('chatBox');
+  const div=document.createElement('div');
+  div.className='msg '+role;
+  let html=imgSrc?`<img src="${imgSrc}" class="attach-preview"><br>`:'';
+  html+=content+'<div class="meta">'+meta+'</div>';
+  div.innerHTML=html;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg && !imageUri && !pendingAttachments.length) return;
+  const provider=document.getElementById('providerSelect').value;
+  const displayMsg = msg || (imageUri?'[图片]':'[文件]');
+  addChatMessage('user',displayMsg,'你',imageUri);
+  input.value='';
+  document.getElementById('chatError').style.display='none';
+  document.getElementById('sendBtn').disabled=true;
+
+  let fullMsg = msg;
+  for(const att of pendingAttachments){
+    if(att.type==='text' && att.content){
+      fullMsg = `[文件: ${att.filename}]\n---\n${att.content}\n---\n\n${fullMsg}`;
+    }
+  }
+  pendingAttachments = [];
+
+  const body = {
+    message: fullMsg,
+    provider: provider,
+    session_id: sessionId,
+    mode: chatMode,
+    temperature: 0.7
+  };
+  if(imageUri){ body.image_uri = imageUri; }
+
+  try{
+    const r = await fetch(API_BASE+'/api/chat/send',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const d = await r.json();
+    if(d.success){
+      addChatMessage('assistant',d.data.reply,'助手 &middot; '+d.data.provider+(chatMode==='single'?' &middot; 单轮':''));
+      // Refresh session list
+      loadSessions();
+    } else {
+      const errBox=document.getElementById('chatError');
+      errBox.textContent=d.error||'请求失败';
+      errBox.style.display='block';
+    }
+  } catch(e){
+    document.getElementById('chatError').textContent='网络错误: '+e.message;
+    document.getElementById('chatError').style.display='block';
+  }
+  document.getElementById('sendBtn').disabled=false;
+  imageUri = '';
+  updateAttachmentsUI();
+}
+
+
+function clearCurrentChat(){
+  document.getElementById('chatBox').innerHTML='<div class="msg assistant"><div class="meta">系统提示</div>对话已清空。</div>';
+  imageUri='';pendingAttachments=[];
+  updateAttachmentsUI();
+  fetch(API_BASE+'/api/chat/clear',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({session_id:sessionId})
+  });
+  allSessions = allSessions.filter(s=>s.session_id!==sessionId);
+  renderConvList();
+}
+
+// --- File Handling ---
+async function handleChatFile(ev){
+  const files = ev.target.files;
+  for(const f of files){ await uploadChatFile(f); }
+  ev.target.value = '';
+}
+
+function onDrop(ev){
+  ev.preventDefault();
+  ev.target.classList.remove('dragover');
+  for(const f of ev.dataTransfer.files){ uploadChatFile(f); }
+}
+
+async function uploadChatFile(file){
+  const fd = new FormData();
+  fd.append('file', file);
+  try{
+    const r = await fetch(API_BASE+'/api/chat/upload',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.success){
+      if(d.data.type==='image'){
+        imageUri = d.data.image_uri;
+        addChatMessage('user','[已上传图片]','你', d.data.image_uri);
+      } else if(d.data.type==='text'){
+        pendingAttachments.push(d.data);
+      }
+      updateAttachmentsUI();
+    } else {
+      alert('上传失败: '+(d.error||'未知错误'));
+    }
+  } catch(e){
+    alert('上传错误: '+e.message);
+  }
+}
+
+function updateAttachmentsUI(){
+  const area=document.getElementById('attachmentsArea');
+  let html='';
+  if(imageUri){ html+=`<span class="attachment-preview"><img src="${imageUri}" alt="img"> 已附加图片</span>`; }
+  for(const a of pendingAttachments){ html+=`<span class="attachment-preview">${a.filename} (${a.type})</span>`; }
+  area.innerHTML=html;
+  
+  const hasTextFiles = pendingAttachments.some(function(a) { return a.type === 'text'; });
+  document.getElementById('analysisActionArea').style.display = hasTextFiles ? 'block' : 'none';
+}
+
+document.getElementById('uploadZone').onclick = function(){ document.getElementById('chatFile').click(); };
+
+function analyzeWithLLM() {
+  var textAtts = pendingAttachments.filter(function(a) { return a.type === 'text'; });
+  if (!textAtts.length) return;
+  var att = textAtts[0];
+  var names = textAtts.map(function(a) { return a.filename; }).join(', ');
+  addChatMessage('user', '📊 分析数据: ' + names, '你');
+  var fullMsg = '请分析上传的文件"' + names + '"，提取关键信息、统计数据并给出有价值的洞察。';
+  for (var i = 0; i < textAtts.length; i++) {
+    if (textAtts[i].content) {
+      fullMsg = '[文件: ' + textAtts[i].filename + ']\n---\n' + textAtts[i].content + '\n---\n\n' + fullMsg;
+    }
+  }
+  pendingAttachments = pendingAttachments.filter(function(a) { return a.type !== 'text'; });
+  updateAttachmentsUI();
+  var provider = document.getElementById('providerSelect').value;
+  document.getElementById('sendBtn').disabled = true;
+  var chatBox = document.getElementById('chatBox');
+  var msgEl = document.createElement('div');
+  msgEl.className = 'msg assistant';
+  msgEl.innerHTML = '<div class="meta">数据分析中...</div>';
+  chatBox.appendChild(msgEl);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  fetch(API_BASE + '/api/chat/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: fullMsg, provider: provider, session_id: sessionId, mode: chatMode, temperature: 0.7})
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    document.getElementById('sendBtn').disabled = false;
+    if (d.success) {
+      msgEl.innerHTML = '<div class="meta">助手 · ' + d.data.provider + '</div>' + d.data.reply;
+      loadSessions();
+      if (att.file_path) {
+        var cc = document.createElement('div');
+        cc.style.marginTop = '12px';
+        cc.innerHTML = '<div style="font-size:11px;color:#999;text-align:center">图表生成中...</div>';
+        msgEl.appendChild(cc);
+        fetch(API_BASE + '/api/chart/generate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({file_path: att.file_path})
+        }).then(function(r2) { return r2.json(); }).then(function(cd) {
+          if (cd.success && cd.data.charts && cd.data.charts.length) {
+            var h = '<div style="margin-top:8px;border-top:1px solid #eee;padding-top:10px">';
+            h += '<div style="font-size:11px;color:#636e72;margin-bottom:8px;font-weight:600">📈 数据可视化</div>';
+            for (var ci = 0; ci < cd.data.charts.length; ci++) {
+              var ch = cd.data.charts[ci];
+              h += '<div style="margin-bottom:16px"><div style="font-size:11px;color:#888;margin-bottom:2px">' + ch.column + ' \u2014 ' + ch.type + '</div>';
+              h += '<img src="data:image/png;base64,' + ch.image + '" style="max-width:100%;border-radius:6px;border:1px solid #eee"></div>';
+            }
+            h += '</div>';
+            cc.innerHTML = h;
+          } else { cc.innerHTML = ''; }
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }).catch(function() { cc.innerHTML = ''; });
+      }
+    } else {
+      msgEl.innerHTML = '<div class="meta">错误</div>' + (d.error || '请求失败');
+      document.getElementById('chatError').textContent = d.error || '请求失败';
+      document.getElementById('chatError').style.display = 'block';
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }).catch(function(e) {
+    document.getElementById('sendBtn').disabled = false;
+    msgEl.innerHTML = '<div class="meta">错误</div>网络错误: ' + e.message;
+    document.getElementById('chatError').textContent = '网络错误: ' + e.message;
+    document.getElementById('chatError').style.display = 'block';
+  });
+}
+
+// --- NLP ---
+function updateNLPCharCount(){
+  const len = document.getElementById('nlpText').value.length;
+  document.getElementById('nlpCharCount').textContent = len + ' 字符';
+}
+
+function showNLPResult(title, data){
+  const el=document.getElementById('nlpResult');
+  let html=`<div class="result-box success"><b>${title}</b>`;
+  if(typeof data==='object'){ html+=renderNLPData(data); }
+  else { html+='<br>'+String(data); }
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function renderNLPData(d){
+  if(typeof d!=='object'||d===null) return String(d);
+  let h='';
+  for(const [k,v] of Object.entries(d)){
+    if(v===null||v===undefined) continue;
+    if(Array.isArray(v)){
+      h+=`<br><b>${k}:</b> `;
+      v.forEach(item=>{
+        if(typeof item==='object') h+=`<span class="keyword-tag">${JSON.stringify(item)}</span> `;
+        else h+=`<span class="keyword-tag">${item}</span> `;
+      });
+    } else if(typeof v==='object'){
+      h+=`<br><b>${k}:</b>`+renderNLPData(v);
+    } else {
+      h+=`<br><b>${k}:</b> ${v}`;
+    }
+  }
+  return h;
+}
+
+function showNLPError(msg){
+  document.getElementById('nlpResult').innerHTML=`<div class="result-box error">${msg}</div>`;
+}
+
+function nlpPost(endpoint, callback, extraBody){
+  const text=document.getElementById('nlpText').value.trim();
+  if(!text){showNLPError('请输入文本');return;}
+  const body = extraBody ? {...extraBody, text:text} : {text:text};
+  fetch(API_BASE+endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  }).then(r=>r.json()).then(d=>{
+    if(d.success) callback(d.data);
+    else showNLPError(d.error||'处理失败');
+  }).catch(e=>showNLPError('网络错误: '+e.message));
+}
+
+function analyzeSentiment(){nlpPost('/api/nlp/sentiment',d=>{
+  const badge=`<span class="badge ${d.sentiment}">${d.sentiment==='positive'?'积极':d.sentiment==='negative'?'消极':'中性'}</span>`;
+  showNLPResult('情感分析 '+badge,d);
+})}
+function extractKeywords(){nlpPost('/api/nlp/keywords',d=>showNLPResult('关键词提取',d))}
+function generateSummary(){nlpPost('/api/nlp/summary',d=>showNLPResult('文本摘要',d))}
+function classifyText(){nlpPost('/api/nlp/classify',d=>showNLPResult('文本分类',d))}
+function extractEntities(){nlpPost('/api/nlp/entities',d=>showNLPResult('实体识别',d))}
+function readabilityCheck(){nlpPost('/api/nlp/readability',d=>showNLPResult('可读性分析',d))}
+function countWords(){nlpPost('/api/nlp/word-count',d=>showNLPResult('字数统计',d))}
+function fullAnalyze(){
+  const text=document.getElementById('nlpText').value.trim();
+  if(!text){showNLPError('请输入文本');return;}
+  document.getElementById('nlpResult').innerHTML='<div class="result-box">分析中...</div>';
+  fetch(API_BASE+'/api/nlp/analyze',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:text})
+  }).then(r=>r.json()).then(d=>{
+    if(!d.success){showNLPError(d.error||'分析失败');return;}
+    const data=d.data;
+    let html='<div class="analysis-grid">';
+    html+=`<div class="analysis-card"><h3>情感分析</h3><span class="badge ${data.sentiment?.sentiment||'neutral'}">${data.sentiment?.sentiment||'无'}</span> 得分:${data.sentiment?.score}, 强度:${data.sentiment?.intensity||'低'}</div>`;
+    html+='<div class="analysis-card"><h3>关键词</h3><div class="keyword-cloud">';
+    if(data.keywords?.by_frequency){
+      data.keywords.by_frequency.slice(0,8).forEach(k=>{
+        html+=`<span class="keyword-tag ${k.score>0.5?'hot':''}">${k.word}</span>`;
+      });
+    }
+    html+='</div></div>';
+    html+=`<div class="analysis-card"><h3>摘要</h3>${data.summary?.summary||'无'}<br><small>压缩比: ${data.summary?.compression_ratio||'无'}</small></div>`;
+    html+='<div class="analysis-card"><h3>分类</h3>';
+    if(data.classification?.categories){
+      data.classification.categories.slice(0,3).forEach(c=>{
+        html+=`<span class="keyword-tag">${c.label} (${c.score})</span> `;
+      });
+    } else {html+='无';}
+    html+='</div>';
+    html+='<div class="analysis-card"><h3>实体</h3>';
+    if(data.entities?.entities){
+      for(const [type,ents] of Object.entries(data.entities.entities)){
+        html+=`<b>${type}:</b> ${ents.slice(0,5).join(', ')}<br>`;
+      }
+    } else {html+='无';}
+    html+='</div>';
+    html+=`<div class="analysis-card"><h3>统计</h3>字符:${data.word_count?.characters}, 词数:${data.word_count?.words}, 句数:${data.word_count?.sentences}</div>`;
+    html+=`<div class="analysis-card"><h3>可读性</h3>难度:${data.readability?.readability_level||'无'}, 阅读时间:${data.readability?.estimated_reading_time||'无'}</div>`;
+    html+='</div>';
+    document.getElementById('nlpResult').innerHTML=html;
+  }).catch(e=>showNLPError('错误: '+e.message));
+}
+
+
+</script>
+</body>
+</html>
+
+
+
+
