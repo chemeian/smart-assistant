@@ -577,31 +577,31 @@ function fullAnalyze(){
     if(!d.success){showNLPError(d.error||'分析失败');return;}
     const data=d.data;
     let html='<div class="analysis-grid">';
-    html+=`<div class="analysis-card"><h3>情感分析</h3><span class="badge ${data.sentiment?.sentiment||'neutral'}">${data.sentiment?.sentiment||'无'}</span> 得分:${data.sentiment?.score}, 强度:${data.sentiment?.intensity||'低'}</div>`;
+    html+=`<div class="analysis-card"><h3>情感分析</h3><span class="badge">${data.sentiment?.['情感']||'无'}</span> 得分:${data.sentiment?.['得分']}, 强度:${data.sentiment?.['强度']||'低'}</div>`;
     html+='<div class="analysis-card"><h3>关键词</h3><div class="keyword-cloud">';
-    if(data.keywords?.by_frequency){
-      data.keywords.by_frequency.slice(0,8).forEach(k=>{
-        html+=`<span class="keyword-tag ${k.score>0.5?'hot':''}">${k.word}</span>`;
+    if(data.keywords?.['词频结果']){
+      data.keywords['词频结果'].slice(0,8).forEach(k=>{
+        html+=`<span class="keyword-tag ${k['分数']>0.5?'hot':''}">${k['词']}</span>`;
       });
     }
     html+='</div></div>';
-    html+=`<div class="analysis-card"><h3>摘要</h3>${data.summary?.summary||'无'}<br><small>压缩比: ${data.summary?.compression_ratio||'无'}</small></div>`;
+    html+=`<div class="analysis-card"><h3>摘要</h3>${data.summary?.['摘要']||'无'}<br><small>压缩比: ${data.summary?.['压缩比']||'无'}</small></div>`;
     html+='<div class="analysis-card"><h3>分类</h3>';
-    if(data.classification?.categories){
-      data.classification.categories.slice(0,3).forEach(c=>{
-        html+=`<span class="keyword-tag">${c.label} (${c.score})</span> `;
+    if(data.classification?.['分类结果']){
+      data.classification['分类结果'].slice(0,3).forEach(c=>{
+        html+=`<span class="keyword-tag">${c['分类']} (${c['匹配度']})</span> `;
       });
     } else {html+='无';}
     html+='</div>';
     html+='<div class="analysis-card"><h3>实体</h3>';
-    if(data.entities?.entities){
-      for(const [type,ents] of Object.entries(data.entities.entities)){
+    if(data.entities?.['实体']){
+      for(const [type,ents] of Object.entries(data.entities['实体'])){
         html+=`<b>${type}:</b> ${ents.slice(0,5).join(', ')}<br>`;
       }
     } else {html+='无';}
     html+='</div>';
-    html+=`<div class="analysis-card"><h3>统计</h3>字符:${data.word_count?.characters}, 词数:${data.word_count?.words}, 句数:${data.word_count?.sentences}</div>`;
-    html+=`<div class="analysis-card"><h3>可读性</h3>难度:${data.readability?.readability_level||'无'}, 阅读时间:${data.readability?.estimated_reading_time||'无'}</div>`;
+    html+=`<div class="analysis-card"><h3>统计</h3>字符:${data.word_count?.['字符数']}, 词数:${data.word_count?.['词数']}, 句数:${data.word_count?.['句数']}</div>`;
+    html+=`<div class="analysis-card"><h3>可读性</h3>难度:${data.readability?.['难度']||'无'}, 阅读时间:${data.readability?.['阅读时间']||'无'}</div>`;
     html+='</div>';
     document.getElementById('nlpResult').innerHTML=html;
   }).catch(e=>showNLPError('错误: '+e.message));

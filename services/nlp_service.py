@@ -124,14 +124,14 @@ class NLPService:
         neg_found = [t for t in tokens if t in self.NEGATIVE_WORDS][:10]
 
         return format_response(success=True, data={
-            "sentiment": label,
-            "score": round(score, 4),
-            "intensity": intensity,
-            "positive_count": pos_count,
-            "negative_count": neg_count,
-            "positive_words_found": list(set(pos_found)),
-            "negative_words_found": list(set(neg_found)),
-            "text_length": len(text),
+            "情感": label,
+            "得分": round(score, 4),
+            "强度": intensity,
+            "正面词数": pos_count,
+            "负面词数": neg_count,
+            "正面词": list(set(pos_found)),
+            "负面词": list(set(neg_found)),
+            "文本长度": len(text),
         })
 
     # ----------------------------------------------------------------
@@ -149,7 +149,7 @@ class NLPService:
 
         # Frequency-based keywords with normalized score
         max_f = max(freq.values()) if freq else 1
-        keywords_freq = [{"word": w, "count": c, "score": round(c / max_f, 4), "method": "词频"}
+        keywords_freq = [{"词": w, "出现次数": c, "分数": round(c / max_f, 4), "方法": "词频"}
                          for w, c in freq.most_common(top_k)]
 
         # TF-IDF keywords for multi-sentence text
@@ -165,18 +165,18 @@ class NLPService:
                 terms = vectorizer.get_feature_names_out()
                 ranks = np.argsort(scores)[::-1][:top_k]
                 keywords_tfidf = [
-                    {"word": terms[i], "score": round(float(scores[i]), 4), "method": "tfidf"}
+                    {"词": terms[i], "分数": round(float(scores[i]), 4), "方法": "TF-IDF"}
                     for i in ranks if scores[i] > 0
                 ]
             except Exception:
                 pass
 
         return format_response(success=True, data={
-            "by_frequency": keywords_freq,
-            "by_tfidf": keywords_tfidf or keywords_freq,
-            "total_tokens": len(tokens),
-            "unique_tokens": len(freq),
-            "top_keyword": keywords_freq[0]["word"] if keywords_freq else None,
+            "词频结果": keywords_freq,
+            "TFIDF结果": keywords_tfidf or keywords_freq,
+            "总词数": len(tokens),
+            "去重词数": len(freq),
+            "关键词": keywords_freq[0]["词"] if keywords_freq else None,
         })
 
     # ----------------------------------------------------------------
@@ -193,10 +193,10 @@ class NLPService:
 
         if len(sentences) <= max_sentences:
             return format_response(success=True, data={
-                "summary": text,
-                "original_sentences": len(sentences),
-                "summary_sentences": len(sentences),
-                "compression_ratio": 1.0,
+                "摘要": text,
+                "原句数": len(sentences),
+                "摘要句数": len(sentences),
+                "压缩比": 1.0,
             })
 
         tokens = self._tokenize(text.lower())
@@ -223,10 +223,10 @@ class NLPService:
         chars_summary = sum(len(s[2]) for s in top)
 
         return format_response(success=True, data={
-            "summary": summary,
-            "original_sentences": len(sentences),
-            "summary_sentences": len(top),
-            "compression_ratio": round(chars_summary / max(chars_original, 1), 3),
+            "摘要": summary,
+            "原句数": len(sentences),
+            "摘要句数": len(top),
+            "压缩比": round(chars_summary / max(chars_original, 1), 3),
         })
 
     # ----------------------------------------------------------------
@@ -249,17 +249,17 @@ class NLPService:
         lexical_diversity = round(unique_words / max(len(tokens), 1), 4)
 
         return format_response(success=True, data={
-            "characters_total": chars,
-            "characters_no_space": chars_no_space,
-            "characters": chars,
-            "words": len(tokens),
-            "sentences": sentences_count,
-            "paragraphs": paragraphs,
-            "lines": lines,
-            "unique_words": unique_words,
-            "avg_word_length": avg_word_len,
-            "avg_sentence_length": avg_sentence_len,
-            "lexical_diversity": lexical_diversity,
+            "总字符": chars,
+            "去空格字符": chars_no_space,
+            "字符数": chars,
+            "词数": len(tokens),
+            "句数": sentences_count,
+            "段落数": paragraphs,
+            "行数": lines,
+            "去重词数": unique_words,
+            "平均词长": avg_word_len,
+            "平均句长": avg_sentence_len,
+            "词汇丰富度": lexical_diversity,
         })
 
     # ----------------------------------------------------------------
@@ -276,18 +276,18 @@ class NLPService:
             if match_count > 0:
                 score = round(match_count / max(len(tokens), 1), 4)
                 results.append({
-                    "label": category["label"],
-                    "score": score,
-                    "matches": sorted(list(matches))[:8],
+                    "分类": category["label"],
+                    "匹配度": score,
+                    "命中词": sorted(list(matches))[:8],
                 })
 
         results.sort(key=lambda x: -x["score"])
         top_label = results[0]["label"] if results else "未分类"
 
         return format_response(success=True, data={
-            "top_category": top_label,
-            "categories": results[:5],
-            "total_tokens": len(tokens),
+            "主分类": top_label,
+            "分类结果": results[:5],
+            "总词数": len(tokens),
         })
 
     # ----------------------------------------------------------------
@@ -312,9 +312,9 @@ class NLPService:
         total_found = sum(len(v) for v in entities.values())
 
         return format_response(success=True, data={
-            "entities": entities,
-            "total_found": total_found,
-            "types_found": list(entities.keys()),
+            "实体": entities,
+            "命中数": total_found,
+            "类型": list(entities.keys()),
         })
 
     # ----------------------------------------------------------------
@@ -325,7 +325,7 @@ class NLPService:
 
         wc = self.word_count(text)
         tokens = self._tokenize(text)
-        sentences_count = wc.get("data", {}).get("sentences", 1)
+        sentences_count = wc.get("data", {}).get("句数", 1)
 
         # Average words per sentence
         avg_words = len(tokens) / max(sentences_count, 1)
@@ -347,14 +347,14 @@ class NLPService:
         reading_time_words = round(len(tokens) / 200, 1)
 
         return format_response(success=True, data={
-            "readability_level": level,
-            "avg_words_per_sentence": round(avg_words, 1),
-            "complex_word_ratio": round(complex_ratio, 3),
-            "total_sentences": sentences_count,
-            "total_words": len(tokens),
-            "total_chars": len(text),
-            "reading_time_minutes": max(reading_time_chars, reading_time_words),
-            "estimated_reading_time": f"约{max(reading_time_chars, reading_time_words, 0.1):.0f}分钟",
+            "难度": level,
+            "平均句长": round(avg_words, 1),
+            "复杂词占比": round(complex_ratio, 3),
+            "句数": sentences_count,
+            "词数": len(tokens),
+            "字符数": len(text),
+            "阅读分钟": max(reading_time_chars, reading_time_words),
+            "阅读时间": f"约{max(reading_time_chars, reading_time_words, 0.1):.0f}分钟",
         })
 
     # ----------------------------------------------------------------
