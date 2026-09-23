@@ -430,7 +430,6 @@ async function sendChat(){
   if(imageUri){ body.image_uri = imageUri; }
 
   try{
-    document.getElementById('stopBtn').style.display='none';
     if(agentMode){ await sendAgentStream(body); loadSessions(); return; }
     const r = await fetch(API_BASE+'/api/chat/send',{
       method:'POST',
@@ -450,6 +449,8 @@ async function sendChat(){
   } catch(e){
     if(e.name==='AbortError'){ return; }
     document.getElementById('chatError').textContent='网络错误: '+e.message;
+  } finally{
+    document.getElementById('stopBtn').style.display='none';
     document.getElementById('chatError').style.display='block';
   }
   document.getElementById('sendBtn').disabled=false;
