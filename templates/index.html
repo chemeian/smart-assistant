@@ -392,6 +392,13 @@ async function sendAgentStream(body){
       }
       box.scrollTop=box.scrollHeight;
     }
+    if(finalText){
+      const cp=document.createElement('button');
+      cp.textContent='\uD83D\uDCCB \u590D\u5236';
+      cp.style.cssText='margin-top:8px;font-size:12px;padding:3px 8px;background:#f0f0f0;border:none;border-radius:4px;cursor:pointer';
+      cp.onclick=()=>{navigator.clipboard.writeText(finalText);cp.textContent='\u2705 \u5DF2\u590D\u5236';};
+      replyEl.appendChild(cp);
+    }
   }
 }
 function chatBox(){ return document.getElementById('chatBox'); }
