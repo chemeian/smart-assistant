@@ -124,11 +124,30 @@ def upload_file():
         )), 400
 
     upload_dir = config.CHAT_UPLOAD_FOLDER
+
+    # 文件大小校验（防止超大文件拖垮服务）
+    max_bytes = config.CHAT_MAX_FILE_SIZE_MB * 1024 * 1024
+    file.stream.seek(0, os.SEEK_END)
+    fsize = file.stream.tell()
+    file.stream.seek(0)
+    if fsize > max_bytes:
+        return jsonify(format_response(
+            success=False,
+            error=f"文件超过 {config.CHAT_MAX_FILE_SIZE_MB}MB 限制（当前 {fsize//1024//1024}MB）"
+        )), 400
+
     path = save_uploaded_file(file, upload_dir)
 
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
 
     if ext in config.CHAT_ALLOWED_IMAGE_EXT:
+        # 真实解码图片，防止伪装成图片的文件
+        try:
+            from PIL import Image
+            with Image.open(path) as im:
+                width, height = im.size
+        except Exception:
+            return jsonify(format_response(success=False, error="图片无法解析，请确认是有效图片")), 400
         img_uri = image_to_base64(path)
         if not img_uri:
             return jsonify(format_response(success=False, error="图片处理失败")), 500
@@ -138,6 +157,8 @@ def upload_file():
             "image_uri": img_uri,
             "mime_type": f"image/{'jpeg' if ext in ('jpg','jpeg') else ext}",
             "size": os.path.getsize(path),
+            "width": width,
+            "height": height,
         }))
 
     elif ext in config.CHAT_ALLOWED_TEXT_EXT:
