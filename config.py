@@ -1,4 +1,4 @@
-"""
+﻿"""
 Application configuration.
 Loads settings from environment variables with sensible defaults.
 """
@@ -69,7 +69,7 @@ class Config:
     CHAT_UPLOAD_FOLDER = os.getenv("CHAT_UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "data", "chat_uploads"))
     CHAT_MAX_FILE_SIZE_MB = int(os.getenv("CHAT_MAX_FILE_SIZE_MB", 20))
     CHAT_ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg", "gif", "bmp", "webp"}
-    CHAT_ALLOWED_TEXT_EXT = {"txt", "csv", "json", "md", "xml", "html", "py", "js", "css"}
+    CHAT_ALLOWED_TEXT_EXT = {"txt", "csv", "json", "md", "xml", "html", "py", "js", "css", "docx"}
 
     @classmethod
     def to_dict(cls):
@@ -78,3 +78,4 @@ class Config:
 
 
 config = Config()
+

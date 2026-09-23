@@ -19,9 +19,32 @@ def allowed_chat_file(filename, for_images=True):
     return ext in config.CHAT_ALLOWED_IMAGE_EXT or ext in config.CHAT_ALLOWED_TEXT_EXT
 
 
+def _read_docx(path: str) -> str:
+    """从 .docx 提取正文（docx 本质是 zip，正文在 word/document.xml）。"""
+    import zipfile, re
+    with zipfile.ZipFile(path) as z:
+        xml = z.read("word/document.xml").decode("utf-8", errors="replace")
+    # 每个 <w:t>...</w:t> 是一段文字，按段落 <w:p> 加换行
+    paras = re.split(r"</w:p>", xml)
+    out = []
+    for para in paras:
+        texts = re.findall(r"<w:t[^>]*>(.*?)</w:t>", para, re.S)
+        line = "".join(texts)
+        if line.strip():
+            out.append(line)
+    return "\n".join(out)
+
+
 def read_text_file_content(path: str) -> Optional[str]:
     """Read the text content of a file for chat context."""
     try:
+        if path.lower().endswith(".docx"):
+            content = _read_docx(path)
+            from config import config
+            max_chars = config.CHAT_MAX_FILE_SIZE_MB * 50000
+            if len(content) > max_chars:
+                content = content[:max_chars] + "\n...[文件内容已截断]..."
+            return content
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
             # Limit to reasonable length for LLM context
