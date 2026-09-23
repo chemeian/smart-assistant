@@ -332,7 +332,8 @@ async function sendAgentStream(body){
   const box=chatBox();
   let msgEl=box.lastElementChild;
   let bodyEl=msgEl.querySelector('.content')||msgEl;
-  bodyEl.innerHTML='<div class="agent-steps" style="font-size:12px;color:#666"></div><div class="reply-text"></div>';
+  bodyEl.innerHTML='<div class="plan-el" style="margin-bottom:6px"></div><div class="agent-steps" style="font-size:12px;color:#666"></div><div class="reply-text"></div>';
+  const planEl=bodyEl.querySelector('.plan-el');
   const stepsEl=bodyEl.querySelector('.agent-steps');
   const replyEl=bodyEl.querySelector('.reply-text');
   replyEl.innerHTML='<span style="color:#999">正在思考中...</span>';
@@ -364,7 +365,7 @@ async function sendAgentStream(body){
       if(!evMatch||!dataMatch) continue;
       const ev=evMatch[1].trim();
       let data; try{ data=JSON.parse(dataMatch[1]); }catch(e){ continue; }
-      if(ev==='plan'){ replyEl.innerHTML='<div style="color:#4a6cf7;font-weight:bold">📋 执行计划：</div><div style="white-space:pre-wrap;color:#666">'+String(data).replace(/</g,'&lt;')+'</div>'; }
+      if(ev==='plan'){ planEl.innerHTML='<div style="color:#4a6cf7;font-weight:bold">📋 执行计划：</div><div style="white-space:pre-wrap;color:#666">'+String(data).replace(/</g,'&lt;')+'</div>'; }
       if(ev==='thinking'){ if(!finalText) replyEl.innerHTML='<span style="color:#999">正在思考中...</span>'; }
       if(ev==='tool_start'){ steps.push({tool:data.tool,args:data.args,result:''}); }
       if(ev==='tool_end'){ const t=steps.find(x=>x.tool===data.tool); if(t)t.result=data.result; }
