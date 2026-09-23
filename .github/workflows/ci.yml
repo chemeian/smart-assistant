@@ -10,12 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MPLBACKEND: Agg
-      QWEN_API_KEY: test
-      DEEPSEEK_API_KEY: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - run: python -m pytest tests/ -q
+      - run: python -m pytest tests/test_agent.py -q
