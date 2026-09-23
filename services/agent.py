@@ -213,7 +213,7 @@ def _impl_web_search(query: str) -> str:
         r = requests.get(
             "https://api.duckduckgo.com/",
             params={"q": query, "format": "json", "no_html": 1},
-            timeout=15,
+            timeout=6,
         )
         data = r.json()
         ans = data.get("AbstractText") or data.get("Answer") or ""
@@ -221,8 +221,8 @@ def _impl_web_search(query: str) -> str:
         parts = [ans] + related
         parts = [x for x in parts if x]
         return "联网结果：" + ("\n".join(parts) if parts else "未找到直接结果，建议换个关键词。")
-    except Exception as e:
-        return f"联网搜索失败：{e}"
+    except Exception:
+        return "联网搜索暂不可用（当前网络无法访问搜索引擎），请改用已有工具或稍后再试。"
 
 
 _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
