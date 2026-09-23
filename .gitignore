@@ -6,3 +6,4 @@ data/chat_uploads/*
 !data/.gitkeep
 
 exports/
+*.log
