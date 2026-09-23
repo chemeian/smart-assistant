@@ -115,6 +115,15 @@ python run.py
 
 启动后访问：<http://127.0.0.1:5000/>
 
+### Docker 一键启动
+
+```bash
+cp .env.example .env   # 先填好密钥
+docker compose up --build
+```
+
+访问：<http://127.0.0.1:5000/>
+
 ---
 
 ## 六、主要接口
