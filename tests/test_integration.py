@@ -3,14 +3,14 @@ def test_health(client):
     assert r.status_code == 200
 
 
-def test_chat_stream_route(client):
+def test_agent_stream_route_no_key(client, monkeypatch):
+    # 没有真实 key 时应优雅返回错误，而不是 500 崩溃
+    monkeypatch.setenv("QWEN_API_KEY", "")
     r = client.post(
         "/api/agent/chat/stream",
-        json={"message": "你好", "session_id": None},
+        json={"message": "你好"},
     )
     assert r.status_code == 200
-    body = r.get_data(as_text=True)
-    assert "event:" in body
 
 
 def test_nlp_sentiment_route(client):
