@@ -16,6 +16,7 @@ from config import config
 from routes.chat import chat_bp
 from routes.chart import chart_bp
 from routes.nlp import nlp_bp
+from routes.agent import agent_bp
 from services import db as _db
 from utils.helpers import format_response
 
@@ -54,6 +55,7 @@ def create_app() -> Flask:
     app.register_blueprint(chat_bp)
     app.register_blueprint(chart_bp)
     app.register_blueprint(nlp_bp)
+    app.register_blueprint(agent_bp)
 
     # --- 接口调用统计埋点 ---
     @app.before_request
