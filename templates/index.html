@@ -332,7 +332,7 @@ async function sendAgentStream(body){
   const box=chatBox();
   let msgEl=box.lastElementChild;
   let bodyEl=msgEl.querySelector('.content')||msgEl;
-  bodyEl.innerHTML='<div class="plan-el" style="margin-bottom:6px"></div><div class="agent-steps" style="font-size:12px;color:#666"></div><div class="reply-text"></div>';
+  bodyEl.innerHTML='<div class="plan-el" style="margin-bottom:10px;padding:8px;background:#f5f7ff;border-radius:6px"></div><div class="agent-steps" style="font-size:12px;color:#666;margin-bottom:10px;padding:6px 8px;background:#fafafa;border-radius:6px"></div><div class="reply-text" style="white-space:pre-wrap;line-height:1.6"></div>';
   const planEl=bodyEl.querySelector('.plan-el');
   const stepsEl=bodyEl.querySelector('.agent-steps');
   const replyEl=bodyEl.querySelector('.reply-text');
