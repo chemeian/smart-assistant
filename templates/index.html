@@ -366,8 +366,11 @@ async function sendChat(){
       let meta = '助手 &middot; '+d.data.provider+(chatMode==='single'?' &middot; 单轮':'');
       let extra = '';
       if(agentMode && d.data.steps && d.data.steps.length){
-        extra = '<div class="agent-steps" style="margin-top:8px;font-size:12px;color:#888;border-left:2px solid #4a6cf7;padding-left:8px">'+
-          d.data.steps.map((s,i)=>'<div>['+(i+1)+'] 调用工具: <b>'+s.tool+'</b> 参数: '+JSON.stringify(s.args)+'</div>').join('')+
+        extra = '<div class="agent-steps" style="margin-top:8px;font-size:12px;color:#666;border-left:2px solid #4a6cf7;padding-left:8px">'+
+          d.data.steps.map((s,i)=>'<div style="margin-bottom:6px">'+
+            '['+(i+1)+'] 调用工具: <b style="color:#4a6cf7">'+s.tool+'</b> 参数: '+JSON.stringify(s.args)+
+            (s.result!==undefined?'<div style="margin:2px 0 2px 12px;color:#999">→ 结果: '+String(s.result).replace(/</g,'&lt;')+'</div>':'')+
+          '</div>').join('')+
           '</div>';
       }
       addChatMessage('assistant', d.data.reply + extra, meta);

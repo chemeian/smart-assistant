@@ -264,11 +264,13 @@ def _call_llm(messages: List[Dict]) -> Dict:
     raise last_error
 
 
-def run(user_message: str) -> Dict:
+def run(user_message: str, session_id: str = None) -> Dict:
     """跑一轮 Agent：模型自主调用工具，返回最终回答与思考步骤。"""
-    messages: List[Dict] = [
-        {"role": "user", "content": user_message}
-    ]
+    messages: List[Dict] = []
+    if session_id:
+        for h in db.get_history(session_id)[-10:]:  # 只带最近10条，控token
+            messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": user_message})
     steps: List[Dict] = []
 
     for _ in range(MAX_ROUNDS):
@@ -289,11 +291,11 @@ def run(user_message: str) -> Dict:
                 args = json.loads(call["function"].get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {}
-            steps.append({"tool": name, "args": args})
             try:
                 observation = _TOOL_IMPLS[name](args)
             except Exception as e:  # 工具失败不中断 Agent，反馈给模型
                 observation = f"工具执行失败：{e}"
+            steps.append({"tool": name, "args": args, "result": observation[:300]})
             messages.append({
                 "role": "tool",
                 "tool_call_id": call["id"],
