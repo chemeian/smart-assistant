@@ -155,6 +155,7 @@ pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflo
         <button class="btn icon ghost" title="上传图片或文件" onclick="document.getElementById('chatFile').click()">&#128206;</button>
         <input type="file" id="chatFile" class="hidden" accept="image/*,.txt,.csv,.json,.md,.xml,.html,.py,.js,.css" onchange="handleChatFile(event)" multiple>
         <button class="btn primary" onclick="sendChat()" id="sendBtn">发送</button>
+        <button class="btn" onclick="stopGeneration()" id="stopBtn" style="display:none;background:#e74c3c;color:#fff;margin-left:6px">停止</button>
       </div>
       <div class="upload-zone" id="uploadZone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="onDrop(event)">
         拖拽图片或文本文件到此处，或点击上传
@@ -192,6 +193,7 @@ const API_BASE = window.location.origin;
 let sessionId = 'sess_' + Math.random().toString(36).slice(2,10);
 let chatMode = 'multi';
 let agentMode = false;
+let abortCtrl = null;
 function toggleAgent(){
   agentMode = !agentMode;
   document.getElementById('agentBtn').classList.toggle('active', agentMode);
@@ -347,8 +349,9 @@ async function sendAgentStream(body){
       box.scrollTop=box.scrollHeight;
     }
   }
+  abortCtrl=new AbortController();
   const resp=await fetch(API_BASE+'/api/agent/chat/stream',{
-    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:abortCtrl.signal
   });
   const reader=resp.body.getReader();
   const dec=new TextDecoder();
@@ -393,6 +396,10 @@ async function sendAgentStream(body){
 }
 function chatBox(){ return document.getElementById('chatBox'); }
 
+function stopGeneration(){
+  if(abortCtrl){ abortCtrl.abort(); abortCtrl=null; }
+  const btn=document.getElementById('stopBtn'); if(btn) btn.style.display='none';
+}
 async function sendChat(){
   const input=document.getElementById('chatInput');
   const msg=input.value.trim();
@@ -412,6 +419,7 @@ async function sendChat(){
   }
   pendingAttachments = [];
 
+  document.getElementById('stopBtn').style.display='inline-block';
   const body = {
     message: fullMsg,
     provider: provider,
@@ -422,6 +430,7 @@ async function sendChat(){
   if(imageUri){ body.image_uri = imageUri; }
 
   try{
+    document.getElementById('stopBtn').style.display='none';
     if(agentMode){ await sendAgentStream(body); loadSessions(); return; }
     const r = await fetch(API_BASE+'/api/chat/send',{
       method:'POST',
@@ -439,6 +448,7 @@ async function sendChat(){
       errBox.style.display='block';
     }
   } catch(e){
+    if(e.name==='AbortError'){ return; }
     document.getElementById('chatError').textContent='网络错误: '+e.message;
     document.getElementById('chatError').style.display='block';
   }
