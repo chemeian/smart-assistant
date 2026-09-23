@@ -368,6 +368,17 @@ def run_stream(user_message: str, session_id: str = None):
     messages.append({"role": "user", "content": user_message})
     steps: List[Dict] = []
 
+    # --- Planner：先拆解任务，给出计划 ---
+    try:
+        plan_resp = _call_llm([
+            {"role": "system", "content": "你是规划助手。把用户任务拆成不超过4步的可执行计划，每步一句话，用换行分隔，不要编号外的多余解释。"},
+            {"role": "user", "content": user_message},
+        ])
+        plan = plan_resp["choices"][0]["message"]["content"].strip()
+        yield {"event": "plan", "data": plan}
+    except Exception:
+        pass
+
     for _ in range(MAX_ROUNDS):
         yield {"event": "thinking", "data": "思考中..."}
         try:
