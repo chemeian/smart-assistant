@@ -17,6 +17,7 @@ MAX_RETRY = 2  # 单次模型调用失败后额外重试次数
 RETRY_BACKOFF = 1.5  # 每次重试间隔（秒），递增
 HISTORY_KEEP = 10          # 最近保留原文的消息条数
 HISTORY_SUMMARY_THRESHOLD = 20  # 超过此条数才触发摘要压缩
+CONFIRM_TOOLS = {"export_report"}  # 需要用户确认才执行的工具
 
 
 # ---------- 工具定义（写给模型看的说明书） ----------
@@ -399,10 +400,14 @@ def run_stream(user_message: str, session_id: str = None):
             except json.JSONDecodeError:
                 args = {}
             yield {"event": "tool_start", "data": {"tool": name, "args": args}}
-            try:
-                observation = _TOOL_IMPLS[name](args)
-            except Exception as e:
-                observation = f"工具执行失败：{e}"
+            if name in CONFIRM_TOOLS:
+                yield {"event": "need_confirm", "data": {"tool": name, "args": args}}
+                observation = "该操作已暂停，等待用户在前端确认后执行。"
+            else:
+                try:
+                    observation = _TOOL_IMPLS[name](args)
+                except Exception as e:
+                    observation = f"工具执行失败：{e}"
             steps.append({"tool": name, "args": args, "result": observation[:300]})
             yield {"event": "tool_end", "data": {"tool": name, "result": observation[:300]}}
             messages.append({

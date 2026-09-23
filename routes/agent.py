@@ -23,6 +23,20 @@ def agent_chat():
     return jsonify(format_response(success=True, data=result))
 
 
+@agent_bp.route("/execute_tool", methods=["POST"])
+def agent_execute_tool():
+    data = request.get_json(silent=True) or {}
+    tool = data.get("tool")
+    args = data.get("args") or {}
+    if tool not in agent._TOOL_IMPLS:
+        return jsonify(format_response(success=False, error="未知工具")), 400
+    try:
+        result = agent._TOOL_IMPLS[tool](args)
+    except Exception as e:
+        return jsonify(format_response(success=False, error=str(e))), 500
+    return jsonify(format_response(success=True, data={"result": result}))
+
+
 @agent_bp.route("/chat/stream", methods=["POST"])
 def agent_chat_stream():
     data = request.get_json(silent=True) or {}
