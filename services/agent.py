@@ -60,6 +60,49 @@ TOOLS: List[Dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate",
+            "description": "安全计算一个数学表达式，如 128*0.15、(120+80)/2。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "expression": {"type": "string", "description": "数学表达式，只含数字和+-*/()."}
+                },
+                "required": ["expression"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "export_report",
+            "description": "把分析结果导出为 Markdown 报告文件保存到本地。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "报告标题"},
+                    "content": {"type": "string", "description": "报告正文（Markdown）"}
+                },
+                "required": ["title", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "describe_data",
+            "description": "读取数据文件（csv/xlsx）并给出行列数、字段名和数值列概况。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "数据文件路径"}
+                },
+                "required": ["file_path"],
+            },
+        },
+    },
 ]
 
 
@@ -89,10 +132,53 @@ def _impl_draw_chart(file_path: str) -> str:
     return json.dumps({"已生成图表": summary}, ensure_ascii=False)
 
 
+def _impl_calculate(expression: str) -> str:
+    allowed = set("0123456789+-*/(). ")
+    if not expression or not set(expression) <= allowed:
+        return "表达式非法，只支持数字和 + - * / ( )"
+    try:
+        result = eval(expression, {"__builtins__": {}}, {})
+        return f"{expression} = {result}"
+    except Exception as e:
+        return f"计算失败：{e}"
+
+
+def _impl_export_report(title: str, content: str) -> str:
+    import os, re
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports")
+    os.makedirs(out_dir, exist_ok=True)
+    safe = re.sub(r"[^\w\u4e00-\u9fa5-]", "_", title)[:40] or "report"
+    path = os.path.join(out_dir, safe + ".md")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(f"# {title}\n\n{content}\n")
+    return f"报告已保存：{path}"
+
+
+def _impl_describe_data(file_path: str) -> str:
+    import pandas as pd
+    try:
+        if file_path.lower().endswith(".csv"):
+            df = pd.read_csv(file_path)
+        else:
+            df = pd.read_excel(file_path)
+        info = {
+            "行数": int(df.shape[0]),
+            "列数": int(df.shape[1]),
+            "字段": list(df.columns),
+            "数值列均值": df.select_dtypes("number").mean().round(2).to_dict(),
+        }
+        return json.dumps(info, ensure_ascii=False)
+    except Exception as e:
+        return f"读取数据失败：{e}"
+
+
 _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
     "read_file": lambda a: _impl_read_file(a["path"]),
     "analyze_text": lambda a: _impl_analyze_text(a["text"]),
     "draw_chart": lambda a: _impl_draw_chart(a["file_path"]),
+    "calculate": lambda a: _impl_calculate(a["expression"]),
+    "export_report": lambda a: _impl_export_report(a["title"], a["content"]),
+    "describe_data": lambda a: _impl_describe_data(a["file_path"]),
 }
 
 
