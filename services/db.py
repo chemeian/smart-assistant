@@ -54,6 +54,18 @@ def get_history(session_id: str) -> List[Dict]:
     return [{"role": r["role"], "content": r["content"]} for r in rows]
 
 
+def search_messages(keyword: str, limit: int = 5) -> List[Dict]:
+    """按关键词跨会话搜索历史消息。"""
+    conn = _conn()
+    rows = conn.execute(
+        "SELECT session_id, role, content FROM messages "
+        "WHERE content LIKE ? ORDER BY id DESC LIMIT ?",
+        (f"%{keyword}%", limit)).fetchall()
+    conn.close()
+    return [{"session_id": r["session_id"], "role": r["role"],
+              "content": r["content"][:200]} for r in rows]
+
+
 def append_message(session_id: str, role: str, content: str):
     conn = _conn()
     now = datetime.now().isoformat()

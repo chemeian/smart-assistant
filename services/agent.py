@@ -9,6 +9,7 @@ from config import config
 from services.chart_service import ChartService
 from services.nlp_service import NLPService
 from utils.helpers import read_text_file_content
+from services import db
 
 MAX_ROUNDS = 6
 TOOL_TIMEOUT = 30
@@ -103,6 +104,34 @@ TOOLS: List[Dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_history",
+            "description": "按关键词搜索过去的对话记录，用于回忆之前聊过什么。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "keyword": {"type": "string", "description": "搜索关键词"}
+                },
+                "required": ["keyword"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "联网搜索实时信息，如新闻、天气、最新数据。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "搜索词"}
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -172,6 +201,30 @@ def _impl_describe_data(file_path: str) -> str:
         return f"读取数据失败：{e}"
 
 
+def _impl_search_history(keyword: str) -> str:
+    rows = db.search_messages(keyword)
+    if not rows:
+        return f"没有找到包含「{keyword}」的历史对话。"
+    return json.dumps(rows, ensure_ascii=False)
+
+
+def _impl_web_search(query: str) -> str:
+    try:
+        r = requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json", "no_html": 1},
+            timeout=15,
+        )
+        data = r.json()
+        ans = data.get("AbstractText") or data.get("Answer") or ""
+        related = [t.get("Text") for t in data.get("RelatedTopics", []) if t.get("Text")][:3]
+        parts = [ans] + related
+        parts = [x for x in parts if x]
+        return "联网结果：" + ("\n".join(parts) if parts else "未找到直接结果，建议换个关键词。")
+    except Exception as e:
+        return f"联网搜索失败：{e}"
+
+
 _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
     "read_file": lambda a: _impl_read_file(a["path"]),
     "analyze_text": lambda a: _impl_analyze_text(a["text"]),
@@ -179,6 +232,8 @@ _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
     "calculate": lambda a: _impl_calculate(a["expression"]),
     "export_report": lambda a: _impl_export_report(a["title"], a["content"]),
     "describe_data": lambda a: _impl_describe_data(a["file_path"]),
+    "search_history": lambda a: _impl_search_history(a["keyword"]),
+    "web_search": lambda a: _impl_web_search(a["query"]),
 }
 
 
