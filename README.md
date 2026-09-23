@@ -4,9 +4,9 @@
 
 基于 Flask 的一站式 AI 助手，集成**智能对话、数据分析可视化、Agent 智能体、NLP 文本处理**四大能力。
 
-![数据分析演示](docs/demo1.png)
+![智能对话](docs/screen1.png)
 
-![分析结果](docs/demo2.png)
+![数据分析](docs/screen2.png)
 
 ## 功能
 
