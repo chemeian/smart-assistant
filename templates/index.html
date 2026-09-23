@@ -357,6 +357,7 @@ async function sendAgentStream(body){
       if(ev==='tool_start'){ steps.push({tool:data.tool,args:data.args,result:''}); }
       if(ev==='tool_end'){ const t=steps.find(x=>x.tool===data.tool); if(t)t.result=data.result; }
       if(ev==='token'){ replyEl.textContent+=data; }
+      if(ev==='error'){ replyEl.innerHTML='<span style="color:#e74c3c">网络连接失败，请稍后重试。</span>'; }
       if(steps.length){ stepsEl.innerHTML=steps.map((s,i)=>'<div style="margin-bottom:4px">['+(i+1)+'] <b style="color:#4a6cf7">'+s.tool+'</b> '+JSON.stringify(s.args)+(s.result?'<div style="color:#999">→ '+String(s.result).replace(/</g,'&lt;')+'</div>':'')+'</div>').join(''); }
       box.scrollTop=box.scrollHeight;
     }
