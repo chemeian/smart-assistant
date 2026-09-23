@@ -83,6 +83,13 @@ def send_message():
         messages = list(history)
 
     # Send request (with or without image)
+    # 带图片但当前模型不支持看图时，自动切到支持视觉的模型（通义千问）
+    if image_uri and not llm.supports_vision:
+        try:
+            llm = LLMService("qwen")
+            provider = "qwen"
+        except Exception:
+            provider = provider
     if image_uri and llm.supports_vision:
         reply = llm.chat_with_image(messages, image_uri, temperature=temperature)
     else:
