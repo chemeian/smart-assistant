@@ -105,16 +105,6 @@ python run.py
 
 启动后访问：<http://127.0.0.1:5000/>
 
-### 运行测试
-
-```bash
-pytest tests/ -v
-# 或指定 python：
-python -m pytest tests/ -v
-```
-
-预期输出 `25 passed`。日志文件为项目根目录的 `smart_assistant.log`。
-
 ---
 
 ## 六、主要接口
