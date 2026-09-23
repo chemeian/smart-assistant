@@ -19,6 +19,58 @@ def allowed_chat_file(filename, for_images=True):
     return ext in config.CHAT_ALLOWED_IMAGE_EXT or ext in config.CHAT_ALLOWED_TEXT_EXT
 
 
+def _read_pdf(path: str) -> str:
+    """用 PyMuPDF(fitz) 提取 PDF 全文。"""
+    import fitz
+    doc = fitz.open(path)
+    parts = []
+    for page in doc:
+        parts.append(page.get_text())
+    doc.close()
+    return "\n".join(parts).strip()
+
+
+def _read_xlsx(path: str) -> str:
+    """解析 xlsx：共享字符串 + sheet 单元格，输出为制表分隔文本。"""
+    import zipfile, re
+    with zipfile.ZipFile(path) as z:
+        shared = []
+        try:
+            ss = z.read("xl/sharedStrings.xml").decode("utf-8", errors="replace")
+            shared = re.findall(r"<t[^>]*>(.*?)</t>", ss, re.S)
+        except KeyError:
+            pass
+        sheet = z.read("xl/worksheets/sheet1.xml").decode("utf-8", errors="replace")
+    rows = re.findall(r"<row[^>]*>(.*?)</row>", sheet, re.S)
+    out = []
+    for row in rows:
+        cells = re.findall(r'<c[^>]*?(?:\s+t="([^"]+)")?[^>]*>.*?<v>(.*?)</v>', row, re.S)
+        vals = []
+        for t, v in cells:
+            if t == "s":
+                vals.append(shared[int(v)] if int(v) < len(shared) else v)
+            else:
+                vals.append(v)
+        out.append("\t".join(vals))
+    return "\n".join(out)
+
+
+def _read_pptx(path: str) -> str:
+    """解析 pptx：每个 slide 的文本框。"""
+    import zipfile, re
+    with zipfile.ZipFile(path) as z:
+        slides = [n for n in z.namelist() if re.match(r"ppt/slides/slide\d+\.xml$", n)]
+        slides.sort()
+        out = []
+        for i, name in enumerate(slides, 1):
+            xml = z.read(name).decode("utf-8", errors="replace")
+            texts = re.findall(r"<a:t>(.*?)</a:t>", xml, re.S)
+            if texts:
+                out.append(f"--- 第{i}页 ---")
+                out.append("\n".join(texts))
+    return "\n".join(out)
+
+
 def _read_docx(path: str) -> str:
     """从 .docx 提取正文（docx 本质是 zip，正文在 word/document.xml）。"""
     import zipfile, re
@@ -38,21 +90,23 @@ def _read_docx(path: str) -> str:
 def read_text_file_content(path: str) -> Optional[str]:
     """Read the text content of a file for chat context."""
     try:
-        if path.lower().endswith(".docx"):
+        low = path.lower()
+        if low.endswith(".docx"):
             content = _read_docx(path)
-            from config import config
-            max_chars = config.CHAT_MAX_FILE_SIZE_MB * 50000
-            if len(content) > max_chars:
-                content = content[:max_chars] + "\n...[文件内容已截断]..."
-            return content
-        with open(path, "r", encoding="utf-8", errors="replace") as f:
-            content = f.read()
-            # Limit to reasonable length for LLM context
-            from config import config
-            max_chars = config.CHAT_MAX_FILE_SIZE_MB * 50000
-            if len(content) > max_chars:
-                content = content[:max_chars] + "\n...[文件内容已截断]..."
-            return content
+        elif low.endswith(".pdf"):
+            content = _read_pdf(path)
+        elif low.endswith(".xlsx") or low.endswith(".xls"):
+            content = _read_xlsx(path)
+        elif low.endswith(".pptx"):
+            content = _read_pptx(path)
+        else:
+            with open(path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
+        from config import config
+        max_chars = config.CHAT_MAX_FILE_SIZE_MB * 50000
+        if len(content) > max_chars:
+            content = content[:max_chars] + "\n...[文件内容已截断]..."
+        return content
     except Exception:
         return None
 
