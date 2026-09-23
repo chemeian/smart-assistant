@@ -15,6 +15,8 @@ MAX_ROUNDS = 6
 TOOL_TIMEOUT = 30
 MAX_RETRY = 2  # 单次模型调用失败后额外重试次数
 RETRY_BACKOFF = 1.5  # 每次重试间隔（秒），递增
+HISTORY_KEEP = 10          # 最近保留原文的消息条数
+HISTORY_SUMMARY_THRESHOLD = 20  # 超过此条数才触发摘要压缩
 
 
 # ---------- 工具定义（写给模型看的说明书） ----------
@@ -237,6 +239,24 @@ _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
 }
 
 
+def _compress_history(history: List[Dict]) -> List[Dict]:
+    """历史过长时，把老消息总结成一条 system 摘要，保留最近原文。"""
+    if len(history) <= HISTORY_SUMMARY_THRESHOLD:
+        return history[-HISTORY_KEEP:]
+    old = history[:-HISTORY_KEEP]
+    keep = history[-HISTORY_KEEP:]
+    convo = "\n".join(f"{m['role']}: {m['content'][:300]}" for m in old)
+    try:
+        data = _call_llm([
+            {"role": "system", "content": "用简洁中文总结以下对话历史，保留关键事实、决策和用户偏好，不超过150字。"},
+            {"role": "user", "content": convo},
+        ])
+        summary = data["choices"][0]["message"]["content"]
+        return [{"role": "system", "content": f"[历史摘要] {summary}"}] + keep
+    except Exception:
+        return keep
+
+
 def _call_llm(messages: List[Dict]) -> Dict:
     """调用大模型（通义千问，OpenAI 兼容接口），携带 tools 参数。"""
     url = f"{config.QWEN_API_BASE.rstrip('/')}/chat/completions"
@@ -302,10 +322,8 @@ def _call_llm_stream(messages: List[str]):
 
 def run(user_message: str, session_id: str = None) -> Dict:
     """跑一轮 Agent：模型自主调用工具，返回最终回答与思考步骤。"""
-    messages: List[Dict] = []
-    if session_id:
-        for h in db.get_history(session_id)[-10:]:  # 只带最近10条，控token
-            messages.append({"role": h["role"], "content": h["content"]})
+    history = db.get_history(session_id) if session_id else []
+    messages = _compress_history(history)
     messages.append({"role": "user", "content": user_message})
     steps: List[Dict] = []
 
@@ -344,10 +362,8 @@ def run(user_message: str, session_id: str = None) -> Dict:
 
 def run_stream(user_message: str, session_id: str = None):
     """流式跑 Agent：逐事件产出 {event, data}，供 SSE 推送。"""
-    messages: List[Dict] = []
-    if session_id:
-        for h in db.get_history(session_id)[-10:]:
-            messages.append({"role": h["role"], "content": h["content"]})
+    history = db.get_history(session_id) if session_id else []
+    messages = _compress_history(history)
     messages.append({"role": "user", "content": user_message})
     steps: List[Dict] = []
 
