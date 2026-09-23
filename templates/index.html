@@ -142,7 +142,6 @@ pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflo
           <span id="agentBtn" onclick="toggleAgent()">Agent模式</span>
         </div>
         <button class="btn ghost small" onclick="clearCurrentChat()" title="清空当前对话">清空</button>
-<button class="btn ghost small" onclick="toggleDark()" title="暗色模式">🌙</button>
 <button class="btn ghost small" onclick="exportMarkdown()" title="导出对话">📥</button>
       </div>
 
@@ -758,13 +757,7 @@ function toggleDark(){
 }
 if(localStorage.getItem('dark')==='true'){ document.body.classList.add('dark'); const b=document.getElementById('darkBtn'); if(b) b.textContent='☀️'; }
 </script>
-<style>
-body.dark{ background:#1e1e1e; color:#eee; }
-body.dark .main, body.dark .chat-box{ background:#2d2d2d !important; color:#eee; }
-body.dark .sidebar{ background:#252525; }
-body.dark input, body.dark select{ background:#3d3d3d; color:#eee; border-color:#555; }
-body.dark .message{ background:#333; }
-</style>
+
 </body>
 </html>
 
