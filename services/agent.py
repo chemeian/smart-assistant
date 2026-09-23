@@ -1,5 +1,6 @@
 """Agent 核心：基于 Function Calling 的工具自动编排（ReAct 循环）。"""
 import json
+import time
 from typing import Callable, Dict, List
 
 import requests
@@ -11,6 +12,8 @@ from utils.helpers import read_text_file_content
 
 MAX_ROUNDS = 6
 TOOL_TIMEOUT = 30
+MAX_RETRY = 2  # 单次模型调用失败后额外重试次数
+RETRY_BACKOFF = 1.5  # 每次重试间隔（秒），递增
 
 
 # ---------- 工具定义（写给模型看的说明书） ----------
@@ -106,9 +109,18 @@ def _call_llm(messages: List[Dict]) -> Dict:
         "tools": TOOLS,
         "temperature": 0.5,
     }
-    resp = requests.post(url, headers=headers, json=payload, timeout=config.CHAT_TIMEOUT)
-    resp.raise_for_status()
-    return resp.json()
+    last_error = None
+    for attempt in range(MAX_RETRY + 1):
+        try:
+            resp = requests.post(url, headers=headers, json=payload,
+                                 timeout=config.CHAT_TIMEOUT)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            last_error = e
+            if attempt < MAX_RETRY:
+                time.sleep(RETRY_BACKOFF * (attempt + 1))
+    raise last_error
 
 
 def run(user_message: str) -> Dict:
