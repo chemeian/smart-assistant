@@ -1,46 +1,41 @@
-# Smart Assistant · 数据分析 Agent
+# Smart Assistant · 智能助手平台
 
 ![CI](https://github.com/chemeian/smart-assistant/actions/workflows/ci.yml/badge.svg)
 
-一个基于 Flask 的 **AI 数据分析助手**：上传 CSV，Agent 自动读数据、画图、统计、写结论。
-
-![数据分析演示](docs/demo1.png)
-
-![分析结果](docs/demo2.png)
-
----
+基于 Flask 的一站式 AI 助手，集成**智能对话、数据分析可视化、Agent 智能体、NLP 文本处理**四大能力。
 
 ## 功能
 
-| 场景 | 效果 |
+| 模块 | 能力 |
 |---|---|
-| 📊 数据分析 | 上传 CSV/Excel，自动出直方图、相关性热力图，给中文结论 |
-| 💬 智能对话 | 对接 DeepSeek / 通义千问，流式输出，多轮上下文 |
-| 🤖 Agent 模式 | Function Calling 自动调工具，Planner 拆任务，权限确认 |
-| 📝 NLP | 情感判别、关键词、摘要、实体识别 |
-| 📥 导出 | 一键把对话存成 Markdown |
+| 💬 智能对话 | DeepSeek / 通义千问双模型、SSE 流式输出、多轮上下文、图片提问、失败自动降级 |
+| 🤖 Agent 智能体 | Function Calling、ReAct 循环、Planner 拆任务、8 个工具自动调用、权限确认、历史摘要、可中断 |
+| 📊 数据分析 | 上传 CSV/Excel，自动统计、画直方图/相关性热力图、中文结论 |
+| 📝 NLP | 情感判别、关键词提取、摘要、实体识别、文本分类 |
+| 🗂️ 会话管理 | SQLite 持久化、多会话切换、一键导出 Markdown |
 
 ## 技术栈
 
 - **后端**：Flask（工厂模式 + 蓝图分层）
-- **大模型**：DeepSeek / 通义千问（OpenAI 兼容接口，SSE 流式）
-- **Agent**：Function Calling、ReAct 循环、Planner、历史摘要
+- **大模型**：OpenAI 兼容接口（DeepSeek / 通义千问）、SSE 流式
+- **Agent**：Function Calling、ReAct、Planner
 - **数据**：pandas、numpy、matplotlib
-- **存储**：SQLite 持久化对话
+- **NLP**：nltk、scikit-learn
+- **存储**：SQLite
 - **工程**：pytest、GitHub Actions CI、Docker
 
 ## 项目结构
 
 ```
 smart-assistant/
-├── app.py              # Flask 工厂入口
+├── app.py
 ├── config.py
-├── routes/             # 路由层
+├── routes/          # 路由层
 │   ├── chat.py
 │   ├── chart.py
 │   ├── nlp.py
 │   └── agent.py
-├── services/           # 业务逻辑层
+├── services/        # 业务层
 │   ├── llm_service.py
 │   ├── chart_service.py
 │   ├── nlp_service.py
