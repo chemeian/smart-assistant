@@ -1,5 +1,7 @@
 # Python 多功能智能助手（Smart Assistant）
 
+![CI](https://github.com/chemeian/smart-assistant/actions/workflows/ci.yml/badge.svg)
+
 一个基于 Flask 的 Web 智能助手项目，集成 **大模型对话、数据分析可视化、自然语言处理（NLP）、Agent 智能体** 四大能力，提供统一的 Web 界面与 RESTful API。
 
 ---
