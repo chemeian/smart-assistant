@@ -4,3 +4,5 @@ __pycache__/
 .matplot_cache/
 data/chat_uploads/*
 !data/.gitkeep
+
+exports/
