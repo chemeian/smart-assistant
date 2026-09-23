@@ -5,7 +5,7 @@ Flask backend with LLM chat (DeepSeek / Tongyi Qianwen),
 and NLP processing capabilities.
 """
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 from flask import render_template
 
 import json as _json
@@ -51,6 +51,32 @@ def create_app() -> Flask:
     app.register_blueprint(chat_bp)
     app.register_blueprint(chart_bp)
     app.register_blueprint(nlp_bp)
+
+    # --- 接口调用统计埋点 ---
+    import time as _time
+    @app.before_request
+    def _stats_start():
+        request._t0 = _time.time()
+
+    @app.after_request
+    def _stats_end(resp):
+        try:
+            path = request.path
+            if path.startswith("/api/") and "/stats" not in path:
+                from services import db as _db
+                dur = int((_time.time() - request._t0) * 1000)
+                _db.record_call(path, 200 <= resp.status_code < 400, dur)
+        except Exception:
+            pass
+        return resp
+
+    @app.route("/api/stats/overview", methods=["GET"])
+    def stats_overview():
+        from services import db as _db
+        return jsonify(format_response_safe(_db.stats_overview()))
+
+    def format_response_safe(data):
+        return {"success": True, "data": data}
 
     # --- Health check ---
     @app.route("/api/health", methods=["GET"])
