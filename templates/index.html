@@ -143,6 +143,7 @@ pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflo
         </div>
         <button class="btn ghost small" onclick="clearCurrentChat()" title="清空当前对话">清空</button>
 <button class="btn ghost small" onclick="toggleDark()" title="暗色模式">🌙</button>
+<button class="btn ghost small" onclick="exportMarkdown()" title="导出对话">📥</button>
       </div>
 
       <div id="attachmentsArea"></div>
@@ -735,6 +736,20 @@ function renderMarkdown(t){
 }
 </script>
 <script>
+function exportMarkdown(){
+  const msgs=document.querySelectorAll('#chatBox .msg');
+  let md='# 对话记录\n\n';
+  msgs.forEach(m=>{
+    const role=m.classList.contains('user')?'用户':'助手';
+    const text=m.innerText;
+    md+='## '+role+'\n\n'+text+'\n\n';
+  });
+  const blob=new Blob([md],{type:'text/markdown'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='chat.md';
+  a.click();
+}
 function toggleDark(){
   document.body.classList.toggle('dark');
   const on=document.body.classList.contains('dark');
