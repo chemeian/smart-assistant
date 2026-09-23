@@ -304,3 +304,51 @@ def run(user_message: str, session_id: str = None) -> Dict:
             })
 
     return {"reply": "达到最大工具调用轮数，已停止。", "steps": steps}
+
+
+def run_stream(user_message: str, session_id: str = None):
+    """流式跑 Agent：逐事件产出 {event, data}，供 SSE 推送。"""
+    messages: List[Dict] = []
+    if session_id:
+        for h in db.get_history(session_id)[-10:]:
+            messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": user_message})
+    steps: List[Dict] = []
+
+    for _ in range(MAX_ROUNDS):
+        yield {"event": "thinking", "data": "思考中..."}
+        try:
+            data = _call_llm(messages)
+        except requests.RequestException as e:
+            yield {"event": "error", "data": f"调用大模型失败：{e}"}
+            return
+        message = data["choices"][0]["message"]
+        messages.append(message)
+
+        tool_calls = message.get("tool_calls") or []
+        if not tool_calls:
+            yield {"event": "token", "data": message.get("content", "")}
+            yield {"event": "done", "data": {"reply": message.get("content", ""), "steps": steps}}
+            return
+
+        for call in tool_calls:
+            name = call["function"]["name"]
+            try:
+                args = json.loads(call["function"].get("arguments") or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            yield {"event": "tool_start", "data": {"tool": name, "args": args}}
+            try:
+                observation = _TOOL_IMPLS[name](args)
+            except Exception as e:
+                observation = f"工具执行失败：{e}"
+            steps.append({"tool": name, "args": args, "result": observation[:300]})
+            yield {"event": "tool_end", "data": {"tool": name, "result": observation[:300]}}
+            messages.append({
+                "role": "tool",
+                "tool_call_id": call["id"],
+                "name": name,
+                "content": observation,
+            })
+
+    yield {"event": "done", "data": {"reply": "达到最大工具调用轮数，已停止。", "steps": steps}}

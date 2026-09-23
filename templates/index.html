@@ -326,6 +326,44 @@ function addChatMessage(role, content, meta, imgSrc){
   box.scrollTop=box.scrollHeight;
 }
 
+async function sendAgentStream(body){
+  const meta='助手 · Agent模式';
+  addChatMessage('assistant','',meta);
+  const box=chatBox();
+  let msgEl=box.lastElementChild;
+  let bodyEl=msgEl.querySelector('.content')||msgEl;
+  bodyEl.innerHTML='<div class="agent-steps" style="font-size:12px;color:#666"></div><div class="reply-text"></div>';
+  const stepsEl=bodyEl.querySelector('.agent-steps');
+  const replyEl=bodyEl.querySelector('.reply-text');
+  const steps=[];
+  const resp=await fetch(API_BASE+'/api/agent/chat/stream',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+  });
+  const reader=resp.body.getReader();
+  const dec=new TextDecoder();
+  let buf='';
+  while(true){
+    const {done,value}=await reader.read();
+    if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    let idx;
+    while((idx=buf.indexOf('\n\n'))>=0){
+      const block=buf.slice(0,idx); buf=buf.slice(idx+2);
+      const evMatch=block.match(/event:\s*(.+)/);
+      const dataMatch=block.match(/data:\s([\s\S]*)/);
+      if(!evMatch||!dataMatch) continue;
+      const ev=evMatch[1].trim();
+      let data; try{ data=JSON.parse(dataMatch[1]); }catch(e){ continue; }
+      if(ev==='tool_start'){ steps.push({tool:data.tool,args:data.args,result:''}); }
+      if(ev==='tool_end'){ const t=steps.find(x=>x.tool===data.tool); if(t)t.result=data.result; }
+      if(ev==='token'){ replyEl.textContent+=data; }
+      if(steps.length){ stepsEl.innerHTML=steps.map((s,i)=>'<div style="margin-bottom:4px">['+(i+1)+'] <b style="color:#4a6cf7">'+s.tool+'</b> '+JSON.stringify(s.args)+(s.result?'<div style="color:#999">→ '+String(s.result).replace(/</g,'&lt;')+'</div>':'')+'</div>').join(''); }
+      box.scrollTop=box.scrollHeight;
+    }
+  }
+}
+function chatBox(){ return document.getElementById('chatBox'); }
+
 async function sendChat(){
   const input=document.getElementById('chatInput');
   const msg=input.value.trim();
@@ -355,8 +393,8 @@ async function sendChat(){
   if(imageUri){ body.image_uri = imageUri; }
 
   try{
-    const endpoint = agentMode ? '/api/agent/chat' : '/api/chat/send';
-    const r = await fetch(API_BASE+endpoint,{
+    if(agentMode){ await sendAgentStream(body); loadSessions(); return; }
+    const r = await fetch(API_BASE+'/api/chat/send',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)
@@ -364,17 +402,7 @@ async function sendChat(){
     const d = await r.json();
     if(d.success){
       let meta = '助手 &middot; '+d.data.provider+(chatMode==='single'?' &middot; 单轮':'');
-      let extra = '';
-      if(agentMode && d.data.steps && d.data.steps.length){
-        extra = '<div class="agent-steps" style="margin-top:8px;font-size:12px;color:#666;border-left:2px solid #4a6cf7;padding-left:8px">'+
-          d.data.steps.map((s,i)=>'<div style="margin-bottom:6px">'+
-            '['+(i+1)+'] 调用工具: <b style="color:#4a6cf7">'+s.tool+'</b> 参数: '+JSON.stringify(s.args)+
-            (s.result!==undefined?'<div style="margin:2px 0 2px 12px;color:#999">→ 结果: '+String(s.result).replace(/</g,'&lt;')+'</div>':'')+
-          '</div>').join('')+
-          '</div>';
-      }
-      addChatMessage('assistant', d.data.reply + extra, meta);
-      // Refresh session list
+      addChatMessage('assistant', d.data.reply, meta);
       loadSessions();
     } else {
       const errBox=document.getElementById('chatError');
