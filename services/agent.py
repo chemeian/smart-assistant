@@ -264,6 +264,42 @@ def _call_llm(messages: List[Dict]) -> Dict:
     raise last_error
 
 
+def _call_llm_stream(messages: List[str]):
+    """以 stream=True 调用模型，逐块产出内容文本。"""
+    url = f"{config.QWEN_API_BASE.rstrip('/')}/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {config.QWEN_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": config.QWEN_MODEL,
+        "messages": messages,
+        "tools": TOOLS,
+        "temperature": 0.5,
+        "stream": True,
+    }
+    resp = requests.post(url, headers=headers, json=payload,
+                         timeout=config.CHAT_TIMEOUT, stream=True)
+    resp.raise_for_status()
+    for line in resp.iter_lines(decode_unicode=True):
+        if not line or not line.startswith("data:"):
+            continue
+        data_str = line[5:].strip()
+        if data_str == "[DONE]":
+            break
+        try:
+            chunk = json.loads(data_str)
+        except json.JSONDecodeError:
+            continue
+        delta = chunk["choices"][0].get("delta", {})
+        # 流式下也要累积可能的 tool_calls
+        for tc in (delta.get("tool_calls") or []):
+            yield {"type": "tool_call_delta", "data": tc}
+        text = delta.get("content")
+        if text:
+            yield {"type": "token", "data": text}
+
+
 def run(user_message: str, session_id: str = None) -> Dict:
     """跑一轮 Agent：模型自主调用工具，返回最终回答与思考步骤。"""
     messages: List[Dict] = []
@@ -327,8 +363,17 @@ def run_stream(user_message: str, session_id: str = None):
 
         tool_calls = message.get("tool_calls") or []
         if not tool_calls:
-            yield {"event": "token", "data": message.get("content", "")}
-            yield {"event": "done", "data": {"reply": message.get("content", ""), "steps": steps}}
+            # 真逐 token 流式：重新以 stream=True 调用，逐块推送
+            full = ""
+            try:
+                for ev in _call_llm_stream(messages):
+                    if ev["type"] == "token":
+                        full += ev["data"]
+                        yield {"event": "token", "data": ev["data"]}
+            except requests.RequestException as e:
+                yield {"event": "error", "data": f"流式调用失败：{e}"}
+                return
+            yield {"event": "done", "data": {"reply": full, "steps": steps}}
             return
 
         for call in tool_calls:
