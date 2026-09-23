@@ -372,7 +372,7 @@ async function sendAgentStream(body){
       if(ev==='thinking'){ if(!finalText) replyEl.innerHTML='<span style="color:#999">正在思考中...</span>'; }
       if(ev==='tool_start'){ steps.push({tool:data.tool,args:data.args,result:''}); }
       if(ev==='tool_end'){ const t=steps.find(x=>x.tool===data.tool); if(t)t.result=data.result; }
-      if(ev==='token'){ finalText+=data; replyEl.textContent=finalText; box.scrollTop=box.scrollHeight; }
+      if(ev==='token'){ finalText+=data; replyEl.innerHTML=renderMarkdown(finalText); box.scrollTop=box.scrollHeight; }
       if(ev==='error'){ replyEl.innerHTML='<span style="color:#e74c3c">网络连接失败，请稍后重试。</span>'; }
       if(ev==='need_confirm'){
         const btn=document.createElement('button');
