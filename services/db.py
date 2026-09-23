@@ -96,6 +96,15 @@ def list_sessions() -> List[Dict]:
     return [dict(r) for r in rows]
 
 
+def clear_messages(session_id: str):
+    """清空某会话的消息记录，但保留会话条目。"""
+    conn = _conn()
+    conn.execute("DELETE FROM messages WHERE session_id=?", (session_id,))
+    conn.execute("UPDATE sessions SET message_count=0 WHERE session_id=?", (session_id,))
+    conn.commit()
+    conn.close()
+
+
 def delete_session(session_id: str):
     conn = _conn()
     conn.execute("DELETE FROM messages WHERE session_id=?", (session_id,))

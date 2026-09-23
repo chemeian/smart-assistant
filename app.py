@@ -5,30 +5,33 @@ Flask backend with LLM chat (DeepSeek / Tongyi Qianwen),
 and NLP processing capabilities.
 """
 import os
-from flask import Flask, jsonify, send_from_directory, request
-from flask import render_template
-
+import time
 import json as _json
-import numpy as _np
 
-class NumpyJSONEncoder(_json.JSONEncoder):
-    """JSON encoder that handles numpy/pandas types."""
-    def default(self, obj):
-        if isinstance(obj, (_np.integer,)):
-            return int(obj)
-        elif isinstance(obj, (_np.floating,)):
-            return float(obj)
-        elif isinstance(obj, (_np.ndarray,)):
-            return obj.tolist()
-        elif hasattr(obj, 'item'):  # numpy scalar
-            return float(obj.item()) if isinstance(obj.item(), float) else int(obj.item())
-        return super().default(obj)
+import numpy as _np
+from flask import Flask, jsonify, render_template, request, redirect
 from flask_cors import CORS
 
 from config import config
 from routes.chat import chat_bp
 from routes.chart import chart_bp
 from routes.nlp import nlp_bp
+from services import db as _db
+from utils.helpers import format_response
+
+
+class NumpyJSONEncoder(_json.JSONEncoder):
+    """JSON encoder that handles numpy/pandas types."""
+    def default(self, obj):
+        if isinstance(obj, _np.integer):
+            return int(obj)
+        if isinstance(obj, _np.floating):
+            return float(obj)
+        if isinstance(obj, _np.ndarray):
+            return obj.tolist()
+        if hasattr(obj, "item"):
+            return obj.item()
+        return super().default(obj)
 
 
 def create_app() -> Flask:
@@ -53,30 +56,24 @@ def create_app() -> Flask:
     app.register_blueprint(nlp_bp)
 
     # --- 接口调用统计埋点 ---
-    import time as _time
     @app.before_request
     def _stats_start():
-        request._t0 = _time.time()
+        request._t0 = time.time()
 
     @app.after_request
     def _stats_end(resp):
         try:
             path = request.path
             if path.startswith("/api/") and "/stats" not in path:
-                from services import db as _db
-                dur = int((_time.time() - request._t0) * 1000)
+                dur = int((time.time() - request._t0) * 1000)
                 _db.record_call(path, 200 <= resp.status_code < 400, dur)
         except Exception:
-            pass
+            app.logger.warning("stats record failed", exc_info=True)
         return resp
 
     @app.route("/api/stats/overview", methods=["GET"])
     def stats_overview():
-        from services import db as _db
-        return jsonify(format_response_safe(_db.stats_overview()))
-
-    def format_response_safe(data):
-        return {"success": True, "data": data}
+        return jsonify(format_response(success=True, data=_db.stats_overview()))
 
     # --- Health check ---
     @app.route("/api/health", methods=["GET"])
@@ -94,9 +91,6 @@ def create_app() -> Flask:
     # --- Root welcome ---
     @app.route("/", methods=["GET"])
     def index():
-        # Force fresh load - redirect with timestamp
-        import time
-        from flask import request, redirect
         if request.args.get("_t") is None:
             return redirect(f"/?_t={int(time.time())}")
         template_path = os.path.join(app.root_path, "templates", "index.html")
@@ -109,40 +103,6 @@ def create_app() -> Flask:
         return jsonify({
             "app": "Python Multi-function Smart Assistant",
             "version": "1.1.0",
-            "endpoints": {
-                "chat": {
-                    "send": "POST /api/chat/send",
-                    "upload": "POST /api/chat/upload",
-                    "history": "GET /api/chat/history",
-                    "clear": "POST /api/chat/clear",
-                    "providers": "GET /api/chat/providers",
-                },
-            "analysis": {
-                "upload": "POST /api/analysis/upload",
-                "describe": "POST /api/analysis/describe",
-                "chart": "POST /api/analysis/chart",
-                "correlation": "POST /api/analysis/correlation",
-                "files": "GET /api/analysis/reports",
-                },
-                "chart": {
-                    "generate": "POST /api/chart/generate",
-                    "stats": "POST /api/chart/stats",
-                },
-                "nlp": {
-                    "sentiment": "POST /api/nlp/sentiment",
-                    "keywords": "POST /api/nlp/keywords",
-                    "summary": "POST /api/nlp/summary",
-                    "word_count": "POST /api/nlp/word-count",
-                    "classify": "POST /api/nlp/classify",
-                    "entities": "POST /api/nlp/entities",
-                    "readability": "POST /api/nlp/readability",
-                    "full_analyze": "POST /api/nlp/analyze",
-                },
-                "system": {
-                    "health": "GET /api/health",
-                    "config": "GET /api/config",
-                },
-            }
         })
 
     @app.route("/api/config", methods=["GET"])
@@ -154,6 +114,8 @@ def create_app() -> Flask:
         return jsonify(safe)
 
     os.makedirs(config.CHAT_UPLOAD_FOLDER, exist_ok=True)
+    from services import db as _db
+    _db.init_db()
 
     return app
 
