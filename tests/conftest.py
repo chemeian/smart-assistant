@@ -2,8 +2,14 @@
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
-import pytest
+import nltk
+for pkg in ("punkt", "punkt_tab", "vader_lexicon", "stopwords"):
+    try:
+        nltk.download(pkg, quiet=True)
+    except Exception:
+        pass
 
+import pytest
 from app import app
 
 
