@@ -683,6 +683,36 @@ function fullAnalyze(){
 
 
 </script>
+<script>
+function renderMarkdown(t){
+  let esc = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // code blocks
+  esc = esc.replace(/```(?:\w*\n)?([\s\S]*?)```/g, '<pre style="background:#f4f4f4;padding:8px;border-radius:4px;overflow-x:auto"><code>$1</code></pre>');
+  // tables
+  esc = esc.replace(/(?:^|\n)(\|[^\n]+\|\n\|[- :|]+\|\n(?:\|[^\n]+\|\n?)*)/g, function(m){
+    let rows = m.trim().split('\n').filter((_,i)=>i!==1);
+    let html = '<table style="border-collapse:collapse;width:100%;margin:8px 0;font-size:13px">';
+    rows.forEach((r,i)=>{
+      let cells = r.split('|').filter((_,j,a)=>j>0&&j<a.length-1);
+      html += '<tr>'+cells.map(c=>'<td style="border:1px solid #ddd;padding:5px 8px">'+(i===0?'<b>'+c+'</b>':c)+'</td>').join('')+'</tr>';
+    });
+    return html+'</table>';
+  });
+  // headings
+  esc = esc.replace(/^### (.*)$/gm, '<h4 style="margin:10px 0 4px">$1</h4>');
+  esc = esc.replace(/^## (.*)$/gm, '<h3 style="margin:12px 0 6px;font-size:16px">$1</h3>');
+  esc = esc.replace(/^# (.*)$/gm, '<h2 style="margin:14px 0 8px;font-size:18px">$1</h2>');
+  // bold & italic
+  esc = esc.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  // blockquote
+  esc = esc.replace(/^&gt; (.*)$/gm, '<div style="border-left:3px solid #4a6cf7;padding-left:8px;color:#666;margin:6px 0">$1</div>');
+  // list
+  esc = esc.replace(/^- (.*)$/gm, '<div style="padding-left:12px">• $1</div>');
+  // numbered list
+  esc = esc.replace(/^(\d+)\. (.*)$/gm, '<div style="padding-left:12px">$1. $2</div>');
+  return esc;
+}
+</script>
 </body>
 </html>
 
