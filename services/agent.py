@@ -325,7 +325,7 @@ def run(user_message: str, session_id: str = None) -> Dict:
     """跑一轮 Agent：模型自主调用工具，返回最终回答与思考步骤。"""
     history = db.get_history(session_id) if session_id else []
     messages = _compress_history(history)
-    messages.insert(0, {"role": "system", "content": "你是一个智能助手。默认直接在对话中回答用户即可，不要主动导出文件；只有用户明确说'导出/保存/下载成文件'时才调用 export_report。"})
+    messages.insert(0, {"role": "system", "content": "你是数据分析助手。用户上传 CSV/Excel 后：1) 用 describe_data 读数据概况；2) 用 draw_chart 画图表；3) 用 calculate 算关键指标；4) 最后在对话里给出中文分析结论。用户明确说'导出/保存报告'时才调用 export_report。"})
     messages.append({"role": "user", "content": user_message})
     steps: List[Dict] = []
 
