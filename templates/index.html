@@ -138,6 +138,9 @@ pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflo
           <span class="active" onclick="setMode('multi')" title="保留对话上下文">多轮对话</span>
           <span onclick="setMode('single')" title="每次独立提问">单轮对话</span>
         </div>
+        <div class="chat-mode-toggle" id="agentToggle" title="让模型自动调用工具完成任务">
+          <span id="agentBtn" onclick="toggleAgent()">Agent模式</span>
+        </div>
         <button class="btn ghost small" onclick="clearCurrentChat()" title="清空当前对话">清空</button>
       </div>
 
@@ -188,6 +191,11 @@ pre.data{font-size:11px;background:#f8f9fa;padding:8px;border-radius:4px;overflo
 const API_BASE = window.location.origin;
 let sessionId = 'sess_' + Math.random().toString(36).slice(2,10);
 let chatMode = 'multi';
+let agentMode = false;
+function toggleAgent(){
+  agentMode = !agentMode;
+  document.getElementById('agentBtn').classList.toggle('active', agentMode);
+}
 let pendingAttachments = [];
 let imageUri = '';
 let allSessions = [];
@@ -347,14 +355,22 @@ async function sendChat(){
   if(imageUri){ body.image_uri = imageUri; }
 
   try{
-    const r = await fetch(API_BASE+'/api/chat/send',{
+    const endpoint = agentMode ? '/api/agent/chat' : '/api/chat/send';
+    const r = await fetch(API_BASE+endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
     const d = await r.json();
     if(d.success){
-      addChatMessage('assistant',d.data.reply,'助手 &middot; '+d.data.provider+(chatMode==='single'?' &middot; 单轮':''));
+      let meta = '助手 &middot; '+d.data.provider+(chatMode==='single'?' &middot; 单轮':'');
+      let extra = '';
+      if(agentMode && d.data.steps && d.data.steps.length){
+        extra = '<div class="agent-steps" style="margin-top:8px;font-size:12px;color:#888;border-left:2px solid #4a6cf7;padding-left:8px">'+
+          d.data.steps.map((s,i)=>'<div>['+(i+1)+'] 调用工具: <b>'+s.tool+'</b> 参数: '+JSON.stringify(s.args)+'</div>').join('')+
+          '</div>';
+      }
+      addChatMessage('assistant', d.data.reply + extra, meta);
       // Refresh session list
       loadSessions();
     } else {
