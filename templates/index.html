@@ -369,7 +369,7 @@ async function sendAgentStream(body){
       if(ev==='tool_end'){ const t=steps.find(x=>x.tool===data.tool); if(t)t.result=data.result; }
       if(ev==='token'){ finalText+=data; typewriter(finalText); }
       if(ev==='error'){ replyEl.innerHTML='<span style="color:#e74c3c">网络连接失败，请稍后重试。</span>'; }
-      if(steps.length){ stepsEl.innerHTML=steps.map((s,i)=>'<div style="margin-bottom:4px">['+(i+1)+'] <b style="color:#4a6cf7">'+s.tool+'</b> '+JSON.stringify(s.args)+(s.result?'<div style="color:#999">→ '+String(s.result).replace(/</g,'&lt;')+'</div>':'')+'</div>').join(''); }
+      if(steps.length){ stepsEl.innerHTML=steps.map((s,i)=>'<details style="margin-bottom:4px"><summary style="cursor:pointer;list-style:none">['+(i+1)+'] 🔧 <b style="color:#4a6cf7">'+s.tool+'</b></summary><div style="margin:2px 0 0 14px;color:#999">参数: '+JSON.stringify(s.args)+(s.result?'<br>结果: '+String(s.result).replace(/</g,'&lt;'):'')+'</div></details>').join(''); }
       box.scrollTop=box.scrollHeight;
     }
   }
