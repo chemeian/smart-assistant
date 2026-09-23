@@ -93,15 +93,15 @@ _TOOL_IMPLS: Dict[str, Callable[[Dict], str]] = {
 }
 
 
-def _call_deepseek(messages: List[Dict]) -> Dict:
-    """调用 DeepSeek，携带 tools 参数。"""
-    url = f"{config.DEEPSEEK_API_BASE.rstrip('/')}/v1/chat/completions"
+def _call_llm(messages: List[Dict]) -> Dict:
+    """调用大模型（通义千问，OpenAI 兼容接口），携带 tools 参数。"""
+    url = f"{config.QWEN_API_BASE.rstrip('/')}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {config.DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {config.QWEN_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = {
-        "model": config.DEEPSEEK_MODEL,
+        "model": config.QWEN_MODEL,
         "messages": messages,
         "tools": TOOLS,
         "temperature": 0.5,
@@ -120,7 +120,7 @@ def run(user_message: str) -> Dict:
 
     for _ in range(MAX_ROUNDS):
         try:
-            data = _call_deepseek(messages)
+            data = _call_llm(messages)
         except requests.RequestException as e:
             return {"reply": f"调用大模型失败：{e}", "steps": steps}
         message = data["choices"][0]["message"]
