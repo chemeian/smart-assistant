@@ -8,6 +8,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+      QWEN_API_KEY: test
+      DEEPSEEK_API_KEY: test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
